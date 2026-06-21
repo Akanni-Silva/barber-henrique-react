@@ -1,9 +1,16 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-
+// src/pages/Public/Login.tsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
-import { Envelope, Lock, SignIn, Eye, EyeSlash } from "@phosphor-icons/react";
+import {
+  Envelope,
+  Lock,
+  SignIn,
+  Eye,
+  EyeSlash,
+  UserPlus,
+} from "@phosphor-icons/react";
 import { ClipLoader } from "react-spinners";
 import { toast } from "react-toastify";
 
@@ -62,7 +69,7 @@ export const Login = () => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="seu@email.com"
                 required
                 disabled={loading}
@@ -82,7 +89,7 @@ export const Login = () => {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="********"
                 required
                 disabled={loading}
@@ -110,7 +117,7 @@ export const Login = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2 font-medium disabled:opacity-70 disabled:cursor-not-allowed"
+            className="w-full bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2 font-medium disabled:opacity-70"
           >
             {loading ? (
               <>
@@ -125,6 +132,17 @@ export const Login = () => {
             )}
           </button>
         </form>
+
+        {/* ✅ Link para registro (primeiro acesso) */}
+        <div className="mt-4 text-center">
+          <button
+            onClick={() => navigate("/register")}
+            className="text-sm text-gray-500 hover:text-blue-600 flex items-center justify-center gap-1 mx-auto"
+          >
+            <UserPlus size={16} />
+            Primeiro acesso? Registre sua barbearia
+          </button>
+        </div>
 
         <div className="mt-6 text-center text-xs text-gray-400">
           <p>Projeto Barber API - Akanni Silva</p>

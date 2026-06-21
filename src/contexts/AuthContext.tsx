@@ -7,10 +7,9 @@ import React, {
   type ReactNode,
 } from "react";
 import { toast } from "react-toastify";
-import type { AuthContextData, User } from "../types";
 import { authEndpoint } from "../api/endpoints/auth";
+import type { AuthContextData, User } from "../types";
 
-// ✅ APENAS o contexto e o provider
 const AuthContext = createContext<AuthContextData | undefined>(undefined);
 
 interface AuthProviderProps {
@@ -89,5 +88,4 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// ✅ Exportar APENAS o Provider e o Context
 export { AuthContext };

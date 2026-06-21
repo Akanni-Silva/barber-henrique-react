@@ -1,32 +1,37 @@
-// src/api/endpoints/auth.endpoint.ts
-
 import { api } from "../axiosConfig";
 
 export const authEndpoint = {
-  // Registrar barbeiro
+  // ✅ Verificar se pode registrar
+  checkRegister: async () => {
+    const response = await api.get("/auth/check-register");
+    return response.data;
+  },
+
+  // ✅ Registrar barbeiro (primeiro acesso)
   register: async (data: {
     name: string;
     email: string;
     password: string;
     phone: string;
+    avatar_url?: string;
   }) => {
     const response = await api.post("/auth/register", data);
     return response.data;
   },
 
-  // Login
+  // ✅ Login
   login: async (data: { email: string; password: string }) => {
     const response = await api.post("/auth/login", data);
     return response.data;
   },
 
-  // Buscar perfil (autenticado)
+  // ✅ Perfil
   getProfile: async () => {
     const response = await api.get("/auth/profile");
     return response.data;
   },
 
-  // Alterar senha
+  // ✅ Alterar senha
   changePassword: async (data: {
     current_password: string;
     new_password: string;
