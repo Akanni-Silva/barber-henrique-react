@@ -15,6 +15,7 @@ import { Spinner } from "../../components/Common/Spinner";
 
 import { formatPrice } from "../../utils/formatPrice";
 import type { Product } from "../../types";
+import { Input } from "../../components/Common/Input";
 
 export const Services = () => {
   const { loading, handleRequest, endpoints } = useApi();
@@ -105,16 +106,14 @@ export const Services = () => {
 
       {/* Barra de busca e filtros */}
       <div className="flex flex-col sm:flex-row gap-4 mb-8">
-        <div className="flex-1 relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <MagnifyingGlassIcon size={20} className="text-text-muted" />
-          </div>
-          <input
+        <div className="flex-1">
+          <Input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="    Buscar serviços..."
-            className="input-primary pl-11"
+            placeholder="Buscar serviços..."
+            icon={<MagnifyingGlassIcon size={20} />}
+            iconPosition="left"
           />
         </div>
 
@@ -146,7 +145,6 @@ export const Services = () => {
           )}
         </div>
       </div>
-
       {/* Resultados */}
       {filteredServices.length === 0 ? (
         <div className="text-center py-12">
