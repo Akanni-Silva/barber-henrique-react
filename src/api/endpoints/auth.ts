@@ -1,13 +1,10 @@
 import { api } from "../axiosConfig";
 
 export const authEndpoint = {
-  // ✅ Verificar se pode registrar
-  checkRegister: async () => {
-    const response = await api.get("/auth/check-register");
-    return response.data;
-  },
+  // ❌ REMOVER - Rota não existe no backend
+  // checkRegister: async () => { ... },
 
-  // ✅ Registrar barbeiro (primeiro acesso)
+  // ✅ Registrar barbeiro (validação automática no backend)
   register: async (data: {
     name: string;
     email: string;

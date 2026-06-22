@@ -9,6 +9,8 @@ import { Login } from "./pages/Public/Login";
 import { Register } from "./pages/Public/Register";
 import { Home } from "./pages/Public/Home";
 import { ToastConfig } from "./Toast/ToastConfig";
+import { Schedule } from "./pages/Public/Schedule";
+import { Services } from "./pages/Public/Services";
 // import { Schedule } from "./pages/Public/Schedule";
 // import { Dashboard } from "./pages/Private/Dashboard";
 
@@ -25,8 +27,8 @@ function App() {
             <Routes>
               {/* Rotas Públicas */}
               <Route path="/" element={<Home />} />
-              <Route path="/agendar" element={<div>Agendar</div>} />
-              <Route path="/servicos" element={<div>Serviços</div>} />
+              <Route path="/agendar" element={<Schedule />} />
+              <Route path="/servicos" element={<Services />} />
 
               {/* Rotas de Autenticação */}
               <Route path="/login" element={<Login />} />

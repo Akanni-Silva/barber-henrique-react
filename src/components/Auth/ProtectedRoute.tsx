@@ -1,6 +1,6 @@
 // src/components/Auth/ProtectedRoute.tsx
 import { Navigate, Outlet } from "react-router-dom";
-import { ClipLoader } from "react-spinners";
+import { Spinner } from "../Common/Spinner";
 import { useAuth } from "../../hooks/useAuth";
 
 export const ProtectedRoute = () => {
@@ -8,8 +8,8 @@ export const ProtectedRoute = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <ClipLoader size={50} color="#3B82F6" />
+      <div className="min-h-screen flex items-center justify-center bg-primary-dark">
+        <Spinner color="#C9A84C" size={20} />
       </div>
     );
   }

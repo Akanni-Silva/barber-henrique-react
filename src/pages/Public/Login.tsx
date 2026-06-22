@@ -1,152 +1,38 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-// src/pages/Public/Login.tsx
-import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
-import {
-  Envelope,
-  Lock,
-  SignIn,
-  Eye,
-  EyeSlash,
-  UserPlus,
-} from "@phosphor-icons/react";
-import { ClipLoader } from "react-spinners";
-import { toast } from "react-toastify";
+import { LoginForm } from "../../components/Auth/LoginForm";
+import { ScissorsIcon } from "@phosphor-icons/react";
+import { useEffect } from "react";
 
 export const Login = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const { login, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
+  // Redirecionar se já estiver logado
   useEffect(() => {
     if (isAuthenticated) {
       navigate("/dashboard");
     }
   }, [isAuthenticated, navigate]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!email || !password) {
-      toast.warning("Preencha todos os campos");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await login(email, password);
-      navigate("/dashboard");
-    } catch (error) {
-      // Erro já tratado no contexto
-    } finally {
-      setLoading(false);
-    }
+  const handleLoginSuccess = () => {
+    navigate("/dashboard");
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-50 to-indigo-100 p-4">
-      <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
-        <div className="text-center mb-8">
-          <div className="text-5xl mb-3">🧔</div>
-          <h1 className="text-2xl font-bold text-gray-800">Barber App</h1>
-          <p className="text-gray-500 text-sm mt-1">Área do Barbeiro</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Envelope size={20} className="text-gray-400" />
-              </div>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="seu@email.com"
-                required
-                disabled={loading}
-              />
-            </div>
+    <div className="min-h-[80vh] flex items-center justify-center py-12">
+      <div className="w-full max-w-md mx-auto px-4">
+        {/* Logo decorativa */}
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center gap-2 text-accent">
+            <ScissorsIcon size={24} weight="fill" />
+            <span className="font-serif text-xl font-bold">
+              Henrique Cortes
+            </span>
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Senha
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Lock size={20} className="text-gray-400" />
-              </div>
-              <input
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="********"
-                required
-                disabled={loading}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
-              >
-                {showPassword ? (
-                  <EyeSlash
-                    size={20}
-                    className="text-gray-400 hover:text-gray-600"
-                  />
-                ) : (
-                  <Eye
-                    size={20}
-                    className="text-gray-400 hover:text-gray-600"
-                  />
-                )}
-              </button>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2 font-medium disabled:opacity-70"
-          >
-            {loading ? (
-              <>
-                <ClipLoader size={24} color="#ffffff" />
-                <span>Entrando...</span>
-              </>
-            ) : (
-              <>
-                <SignIn size={20} />
-                <span>Entrar</span>
-              </>
-            )}
-          </button>
-        </form>
-
-        {/* ✅ Link para registro (primeiro acesso) */}
-        <div className="mt-4 text-center">
-          <button
-            onClick={() => navigate("/register")}
-            className="text-sm text-gray-500 hover:text-blue-600 flex items-center justify-center gap-1 mx-auto"
-          >
-            <UserPlus size={16} />
-            Primeiro acesso? Registre sua barbearia
-          </button>
         </div>
 
-        <div className="mt-6 text-center text-xs text-gray-400">
-          <p>Projeto Barber API - Akanni Silva</p>
-        </div>
+        <LoginForm onSuccess={handleLoginSuccess} />
       </div>
     </div>
   );
