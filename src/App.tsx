@@ -1,5 +1,5 @@
 // src/App.tsx
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/Auth/ProtectedRoute";
 
@@ -8,50 +8,55 @@ import { Footer } from "./components/Layout/Footer";
 import { Login } from "./pages/Public/Login";
 import { Register } from "./pages/Public/Register";
 import { Home } from "./pages/Public/Home";
-import { ToastConfig } from "./Toast/ToastConfig";
 import { Schedule } from "./pages/Public/Schedule";
 import { Services } from "./pages/Public/Services";
-// import { Schedule } from "./pages/Public/Schedule";
-// import { Dashboard } from "./pages/Private/Dashboard";
+import { Dashboard } from "./pages/Private/Dashboard";
+import { Clients } from "./pages/Private/Clients";
+import { Products } from "./pages/Private/Products";
+import { ScheduleManagement } from "./pages/Private/ScheduleManagement";
+import { AppointmentsManagement } from "./pages/Private/AppointmentsManagement";
+import { ToastConfig } from "./Toast/ToastConfig";
 
 function App() {
   return (
     <AuthProvider>
       <ToastConfig />
       <BrowserRouter>
-        <div className="min-h-screen flex flex-col bg-primary-dark">
-          <Header />
+        <Header />
+        <div className="min-h-[80vh] max-w-7xl mx-auto px-6 sm:px-8 md:px-12 lg:px-16 py-8 md:py-12">
+          <Routes>
+            {/* ✅ Rotas Públicas (acessíveis para todos) */}
+            <Route path="/" element={<Home />} />
+            <Route path="/servicos" element={<Services />} />
 
-          {/* ✅ Conteúdo principal com espaçamento SEO-friendly */}
-          <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 md:py-12">
-            <Routes>
-              {/* Rotas Públicas */}
-              <Route path="/" element={<Home />} />
+            {/* ✅ Rota de Agendamento (apenas para DESLOGADOS) */}
+            <Route
+              element={<ProtectedRoute requireGuest redirectTo="/dashboard" />}
+            >
               <Route path="/agendar" element={<Schedule />} />
-              <Route path="/servicos" element={<Services />} />
+            </Route>
 
-              {/* Rotas de Autenticação */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
+            {/* Rotas de Autenticação */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
 
-              {/* Rotas Protegidas */}
-              <Route element={<ProtectedRoute />}>
-                <Route path="/dashboard" element={<div>Dashboard</div>} />
-                <Route path="/clientes" element={<div>Clientes</div>} />
-                <Route
-                  path="/servicos-admin"
-                  element={<div>Serviços Admin</div>}
-                />
-                <Route path="/agenda" element={<div>Agenda</div>} />
-                <Route path="/agendamentos" element={<div>Agendamentos</div>} />
-              </Route>
+            {/* ✅ Rotas Protegidas (apenas LOGADOS) */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/clientes" element={<Clients />} />
+              <Route path="/servicos-admin" element={<Products />} />
+              <Route path="/agenda" element={<ScheduleManagement />} />
+              <Route
+                path="/agendamentos"
+                element={<AppointmentsManagement />}
+              />
+            </Route>
 
-              <Route path="*" element={<Home />} />
-            </Routes>
-          </main>
-
-          <Footer />
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
         </div>
+        <Footer />
       </BrowserRouter>
     </AuthProvider>
   );

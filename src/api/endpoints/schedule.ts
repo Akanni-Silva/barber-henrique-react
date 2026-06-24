@@ -3,7 +3,15 @@
 import { api } from "../axiosConfig";
 
 export const scheduleEndpoint = {
-  // Ver slots disponíveis (público)
+  // ✅ Buscar slots para HOJE (com validação de horário passado)
+  getTodaySlots: async (duration?: number) => {
+    const response = await api.get("/schedule/today-slots", {
+      params: { duration },
+    });
+    return response.data;
+  },
+
+  // ✅ Buscar slots para uma data específica (SEM validação)
   getAvailableSlots: async (date: string, duration?: number) => {
     const response = await api.get("/schedule/available-slots", {
       params: { date, duration },
@@ -16,6 +24,12 @@ export const scheduleEndpoint = {
     const response = await api.get("/schedule/working-hours", {
       params: { date },
     });
+    return response.data;
+  },
+
+  // ✅ Horário de funcionamento para HOJE
+  getTodayWorkingHours: async () => {
+    const response = await api.get("/schedule/today-working-hours");
     return response.data;
   },
 

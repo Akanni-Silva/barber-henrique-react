@@ -1,27 +1,4 @@
 // src/types/index.ts
-export interface User {
-  id: number;
-  name: string;
-  email: string;
-  phone: string;
-  avatar_url?: string | null;
-  is_active?: boolean;
-  last_login_at?: string | null;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface AuthContextData {
-  user: User | null;
-  loading: boolean;
-  isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
-  updateUser: (data: Partial<User>) => void;
-  getToken: () => string | null;
-}
-
-// src/types/index.ts
 
 // ========================================
 // 📦 MODELOS DE AUTENTICAÇÃO
@@ -98,14 +75,13 @@ export interface UpdateClientData {
 // 📦 MODELOS DE PRODUTOS/SERVIÇOS
 // ========================================
 
-// src/types/index.ts (atualizado)
 export interface Product {
   id: number;
   name: string;
   price: number;
   duration_minutes: number;
   description?: string;
-  category?: string; // ✅ Adicionar categoria
+  category?: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -115,14 +91,14 @@ export interface CreateProductData {
   name: string;
   price: number;
   duration_minutes: number;
-  category?: string; // ✅ Adicionar categoria
+  category?: string;
 }
 
 export interface UpdateProductData {
   name?: string;
   price?: number;
   duration_minutes?: number;
-  category?: string; // ✅ Adicionar categoria
+  category?: string;
   is_active?: boolean;
 }
 
@@ -169,7 +145,7 @@ export interface AppointmentFilters {
 }
 
 // ========================================
-// 📦 MODELOS DE AGENDA
+// 📦 MODELOS DE AGENDA (SCHEDULE)
 // ========================================
 
 export interface WorkSchedule {
@@ -207,6 +183,13 @@ export interface SpecialHours {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+// ✅ Adicionar tipo para resposta de slots
+export interface AvailableSlotsResponse {
+  slots: string[];
+  date?: string;
+  is_working?: boolean;
 }
 
 export interface AvailableSlot {

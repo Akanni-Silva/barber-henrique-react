@@ -31,6 +31,14 @@ export const clientsEndpoint = {
     return response.data;
   },
 
+  // ✅ Buscar clientes por nome (protegido)
+  searchByName: async (name: string, limit: number = 10) => {
+    const response = await api.get("/clients/search", {
+      params: { name, limit },
+    });
+    return response.data;
+  },
+
   // Atualizar cliente
   update: async (
     id: number,

@@ -1,17 +1,24 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // src/components/Layout/Header.tsx
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import {
   ListIcon,
   ScissorsIcon,
   SignOutIcon,
   XIcon,
+  CalendarIcon,
+  UserIcon,
+  ClockIcon,
+  HouseIcon,
+  ClipboardIcon,
 } from "@phosphor-icons/react";
 
 export const Header = () => {
   const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
   const handleLogout = () => {
@@ -19,13 +26,28 @@ export const Header = () => {
     navigate("/login");
   };
 
+  const isActive = (path: string) => {
+    return (
+      location.pathname === path || location.pathname.startsWith(path + "/")
+    );
+  };
+
+  const barberLinks = [
+    { to: "/dashboard", label: "Dashboard", icon: HouseIcon },
+    { to: "/agendamentos", label: "Agendamentos", icon: ClipboardIcon },
+    { to: "/clientes", label: "Clientes", icon: UserIcon },
+    { to: "/servicos-admin", label: "Serviços", icon: ScissorsIcon },
+    { to: "/agenda", label: "Agenda", icon: ClockIcon },
+  ];
+
   return (
     <header className="bg-primary/95 backdrop-blur-sm border-b border-border sticky top-0 z-50">
-      {/* ✅ Adicionar container com padding responsivo */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16 md:h-20">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-3 group">
+          <Link
+            to={isAuthenticated ? "/dashboard" : "/"}
+            className="flex items-center gap-3 group"
+          >
             <div className="w-10 h-10 md:w-12 md:h-12 bg-accent rounded-full flex items-center justify-center transition-transform group-hover:scale-105">
               <ScissorsIcon
                 size={24}
@@ -43,97 +65,161 @@ export const Header = () => {
             </div>
           </Link>
 
-          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-6">
-            <Link
-              to="/agendar"
-              className="text-text-secondary hover:text-accent transition"
-            >
-              Agendar
-            </Link>
-            <Link
-              to="/servicos"
-              className="text-text-secondary hover:text-accent transition"
-            >
-              Serviços
-            </Link>
-
-            {isAuthenticated ? (
+            {!isAuthenticated && (
               <>
                 <Link
-                  to="/dashboard"
-                  className="text-text-secondary hover:text-accent transition"
+                  to="/servicos"
+                  className={`text-sm transition ${
+                    isActive("/servicos")
+                      ? "text-accent"
+                      : "text-text-secondary hover:text-accent"
+                  }`}
                 >
-                  Dashboard
+                  Serviços
                 </Link>
-                <div className="flex items-center gap-3 ml-4">
-                  <span className="text-sm text-text-muted">{user?.name}</span>
-                  <button
-                    onClick={handleLogout}
-                    className="text-text-muted hover:text-red-500 transition"
-                  >
-                    <SignOutIcon size={20} />
-                  </button>
-                </div>
+                <Link
+                  to="/agendar"
+                  className={`text-sm transition ${
+                    isActive("/agendar")
+                      ? "text-accent"
+                      : "text-text-secondary hover:text-accent"
+                  }`}
+                >
+                  Agendar
+                </Link>
               </>
+            )}
+
+            {isAuthenticated && (
+              <div className="flex items-center gap-1">
+                <span className="w-px h-6 bg-border mx-2"></span>
+                {barberLinks.map((link) => (
+                  <Link
+                    key={link.to}
+                    to={link.to}
+                    className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-sm transition ${
+                      isActive(link.to)
+                        ? "bg-accent/10 text-accent"
+                        : "text-text-secondary hover:text-accent hover:bg-primary-light"
+                    }`}
+                    title={link.label}
+                  >
+                    <link.icon size={18} />
+                    <span className="hidden xl:inline">{link.label}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
+
+            {isAuthenticated ? (
+              <div className="flex items-center gap-3 ml-4 pl-4 border-l border-border">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-accent/20 rounded-full flex items-center justify-center">
+                    <UserIcon size={16} className="text-accent" weight="fill" />
+                  </div>
+                  <span className="text-sm text-text-secondary hidden lg:inline">
+                    {user?.name?.split(" ")[0] || "Barbeiro"}
+                  </span>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="text-text-muted hover:text-red-500 transition p-1.5 rounded-lg hover:bg-red-500/10"
+                  title="Sair"
+                >
+                  <SignOutIcon size={20} />
+                </button>
+              </div>
             ) : (
-              <Link to="/login" className="btn-primary text-sm py-2 px-4">
+              <Link
+                to="/login"
+                className="btn-primary text-sm py-2 px-4 flex items-center gap-2"
+              >
+                <ScissorsIcon size={16} />
                 Área do Barbeiro
               </Link>
             )}
           </nav>
 
-          {/* Mobile Menu Button */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden text-text-secondary hover:text-accent transition"
+            className="md:hidden text-text-secondary hover:text-accent transition p-1.5 rounded-lg hover:bg-primary-light"
           >
             {isMobileMenuOpen ? <XIcon size={24} /> : <ListIcon size={24} />}
           </button>
         </div>
 
-        {/* Mobile Menu */}
         {isMobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-border">
-            <nav className="flex flex-col gap-3">
-              <Link
-                to="/agendar"
-                className="text-text-secondary hover:text-accent transition py-2"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Agendar
-              </Link>
-              <Link
-                to="/servicos"
-                className="text-text-secondary hover:text-accent transition py-2"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Serviços
-              </Link>
-
-              {isAuthenticated ? (
+            <nav className="flex flex-col gap-2">
+              {!isAuthenticated && (
                 <>
                   <Link
-                    to="/dashboard"
-                    className="text-text-secondary hover:text-accent transition py-2"
+                    to="/servicos"
+                    className={`px-3 py-2 rounded-lg transition ${
+                      isActive("/servicos")
+                        ? "bg-accent/10 text-accent"
+                        : "text-text-secondary hover:text-accent hover:bg-primary-light"
+                    }`}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    Dashboard
+                    Serviços
                   </Link>
-                  <button
-                    onClick={() => {
-                      handleLogout();
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="text-red-500 hover:text-red-400 transition py-2 text-left"
+                  <Link
+                    to="/agendar"
+                    className={`px-3 py-2 rounded-lg transition ${
+                      isActive("/agendar")
+                        ? "bg-accent/10 text-accent"
+                        : "text-text-secondary hover:text-accent hover:bg-primary-light"
+                    }`}
+                    onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    Sair
-                  </button>
+                    Agendar
+                  </Link>
                 </>
-              ) : (
+              )}
+
+              {isAuthenticated && (
+                <>
+                  <div className="border-t border-border my-2 pt-2">
+                    <p className="text-xs text-text-muted px-3 py-1">
+                      Área do Barbeiro
+                    </p>
+                  </div>
+                  {barberLinks.map((link) => (
+                    <Link
+                      key={link.to}
+                      to={link.to}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition ${
+                        isActive(link.to)
+                          ? "bg-accent/10 text-accent"
+                          : "text-text-secondary hover:text-accent hover:bg-primary-light"
+                      }`}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <link.icon size={20} />
+                      {link.label}
+                    </Link>
+                  ))}
+                  <div className="border-t border-border my-2 pt-2">
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="flex items-center gap-3 px-3 py-2 w-full text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition text-left"
+                    >
+                      <SignOutIcon size={20} />
+                      Sair
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {!isAuthenticated && (
                 <Link
                   to="/login"
-                  className="btn-primary text-center"
+                  className="btn-primary text-center mt-2"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Área do Barbeiro
