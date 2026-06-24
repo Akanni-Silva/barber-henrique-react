@@ -1,6 +1,7 @@
+/* eslint-disable react-hooks/refs */
+// src/pages/Private/AppointmentsManagement.tsx
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable react-hooks/set-state-in-effect */
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { toast } from "react-toastify";
 import {
   ClockIcon,
@@ -11,16 +12,21 @@ import {
   FunnelIcon,
   XIcon,
   EyeIcon,
+  CalendarPlusIcon,
 } from "@phosphor-icons/react";
 import { useApi } from "../../hooks/useApi";
 import { Spinner } from "../../components/Common/Spinner";
-import { ConfirmPopup } from "../../components/Common/ConfirmPopup";
+import { RescheduleModal } from "../../components/Common/RescheduleModal";
 import { formatPrice } from "../../utils/formatPrice";
 import { formatDate } from "../../utils/formatDate";
-import type { Appointment, AppointmentFilters } from "../../types";
+import {
+  getTemporalStatus,
+  canRescheduleAppointment,
+} from "../../utils/appointmentStatus";
+import type { Appointment, AppointmentFilters, Product } from "../../types";
 
 export const AppointmentsManagement = () => {
-  const { loading, endpoints } = useApi();
+  const { loading, handleRequest, endpoints } = useApi();
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [total, setTotal] = useState(0);
@@ -36,30 +42,110 @@ export const AppointmentsManagement = () => {
     useState<Appointment | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [services, setServices] = useState<Product[]>([]);
+  const [isServicesLoading, setIsServicesLoading] = useState(false);
 
-  // ✅ Buscar agendamentos - função estável
+  // Estado para o modal de reagendamento
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [appointmentToReschedule, setAppointmentToReschedule] =
+    useState<Appointment | null>(null);
+
+  // ✅ Ref para evitar chamadas duplicadas
+  const isMounted = useRef(true);
+  const fetchInProgress = useRef(false);
+
+  // ✅ Memoizar parâmetros da requisição para evitar recriação
+  const requestParams = useMemo(() => {
+    const params: any = { page, limit };
+    if (filters.status) params.status = filters.status;
+    if (filters.startDate) params.startDate = filters.startDate;
+    if (filters.endDate) params.endDate = filters.endDate;
+    return params;
+  }, [page, limit, filters.status, filters.startDate, filters.endDate]);
+
+  // ✅ Função para ordenar agendamentos (mais recentes primeiro) - ESTÁVEL
+  const sortAppointmentsByDate = useCallback((list: Appointment[]) => {
+    return [...list].sort((a, b) => {
+      const dateA = new Date(a.appointment_date);
+      const dateB = new Date(b.appointment_date);
+
+      if (dateA.getTime() !== dateB.getTime()) {
+        return dateB.getTime() - dateA.getTime();
+      }
+
+      return b.appointment_time.localeCompare(a.appointment_time);
+    });
+  }, []);
+
+  // ✅ Buscar agendamentos usando handleRequest - SEM isLoading nas dependências
   const fetchAppointments = useCallback(async () => {
+    // Evitar chamadas concorrentes
+    if (fetchInProgress.current) return;
+    fetchInProgress.current = true;
+
     setIsLoading(true);
     try {
-      const data = await endpoints.appointments.findAll({
-        ...filters,
-        page,
-        limit,
-      });
-      setAppointments(data?.appointments || []);
+      const data = await handleRequest(
+        endpoints.appointments.findAll(requestParams),
+      );
+
+      const sortedAppointments = sortAppointmentsByDate(
+        data?.appointments || [],
+      );
+
+      setAppointments(sortedAppointments);
       setTotal(data?.total || 0);
     } catch (error) {
       console.error("Erro ao carregar agendamentos:", error);
-      toast.error("Erro ao carregar agendamentos");
     } finally {
       setIsLoading(false);
+      fetchInProgress.current = false;
     }
-  }, [filters, page, limit]); // ✅ Dependências específicas
+  }, [
+    handleRequest,
+    endpoints.appointments,
+    requestParams,
+    sortAppointmentsByDate,
+    // ✅ REMOVIDO: isLoading - não pode ser dependência
+  ]);
 
-  // ✅ useEffect com dependências corretas
+  // ✅ Buscar serviços com fallback silencioso - ESTÁVEL
+  const fetchServices = useCallback(async () => {
+    setIsServicesLoading(true);
+    try {
+      let data = await handleRequest(endpoints.products.findActive());
+
+      if (!data || (Array.isArray(data) && data.length === 0)) {
+        data = await handleRequest(endpoints.products.findAll());
+      }
+
+      setServices(data || []);
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.debug("Serviços não disponíveis para reagendamento:", error);
+      }
+      setServices([]);
+    } finally {
+      setIsServicesLoading(false);
+    }
+  }, [handleRequest, endpoints.products]);
+
+  // ✅ useEffect para carregar dados iniciais - UMA VEZ
   useEffect(() => {
-    fetchAppointments();
-  }, [fetchAppointments]); // ✅ Dependência estável
+    if (isMounted.current) {
+      fetchAppointments();
+      fetchServices();
+      isMounted.current = false;
+    }
+  }, [fetchAppointments, fetchServices]);
+
+  // ✅ useEffect para recarregar quando página ou filtros mudarem
+  useEffect(() => {
+    // Só recarregar se não for a primeira montagem
+    if (!isMounted.current) {
+      fetchAppointments();
+    }
+  }, [fetchAppointments]);
 
   const handleFilterChange = (key: keyof AppointmentFilters, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -76,14 +162,57 @@ export const AppointmentsManagement = () => {
     setShowFilters(false);
   };
 
-  // ✅ Confirmar agendamento
-  const handleConfirm = async (id: number) => {
+  // ✅ Função para reagendar
+  const handleReschedule = async (newDate: string, newTime: string) => {
+    if (!appointmentToReschedule) {
+      toast.error("Agendamento não encontrado");
+      return;
+    }
+
     try {
-      await endpoints.appointments.confirm(id);
+      await handleRequest(
+        endpoints.appointments.reschedule(appointmentToReschedule.id, {
+          appointment_date: newDate,
+          appointment_time: newTime,
+        }),
+      );
+      toast.success("📅 Agendamento reagendado com sucesso!");
+      await fetchAppointments();
+      setShowRescheduleModal(false);
+      setAppointmentToReschedule(null);
+    } catch (error: any) {
+      console.error("Erro ao reagendar:", error);
+      const message =
+        error.response?.data?.message || "Erro ao reagendar agendamento";
+      toast.error(`❌ ${message}`);
+    }
+  };
+
+  // Função para abrir modal de reagendamento
+  const openRescheduleModal = (appointment: Appointment) => {
+    setAppointmentToReschedule(appointment);
+    setShowRescheduleModal(true);
+  };
+
+  // ✅ Confirmar agendamento
+  const handleConfirm = async (id: number, appointment: Appointment) => {
+    const temporalStatus = getTemporalStatus(
+      appointment.appointment_date,
+      appointment.appointment_time,
+    );
+
+    if (temporalStatus.isPast || temporalStatus.isLate) {
+      toast.warning(
+        "⚠️ Este agendamento está atrasado ou já passou. Considere reagendar ou cancelar.",
+      );
+      return;
+    }
+
+    try {
+      await handleRequest(endpoints.appointments.confirm(id));
       toast.success("✅ Agendamento confirmado!");
       await fetchAppointments();
     } catch (error: any) {
-      console.error("Erro ao confirmar:", error);
       const message =
         error.response?.data?.message || "Erro ao confirmar agendamento";
       toast.error(`❌ ${message}`);
@@ -91,13 +220,28 @@ export const AppointmentsManagement = () => {
   };
 
   // ✅ Finalizar agendamento
-  const handleComplete = async (id: number) => {
+  const handleComplete = async (id: number, appointment: Appointment) => {
+    const temporalStatus = getTemporalStatus(
+      appointment.appointment_date,
+      appointment.appointment_time,
+    );
+
+    if (
+      !temporalStatus.isPast &&
+      !temporalStatus.isLate &&
+      !temporalStatus.label.includes("Em andamento")
+    ) {
+      toast.warning(
+        "⚠️ Este agendamento ainda não começou. Aguarde o horário para finalizar.",
+      );
+      return;
+    }
+
     try {
-      await endpoints.appointments.complete(id);
+      await handleRequest(endpoints.appointments.complete(id));
       toast.success("✅ Atendimento finalizado!");
       await fetchAppointments();
     } catch (error: any) {
-      console.error("Erro ao finalizar:", error);
       const message =
         error.response?.data?.message || "Erro ao finalizar atendimento";
       toast.error(`❌ ${message}`);
@@ -107,11 +251,12 @@ export const AppointmentsManagement = () => {
   // ✅ Cancelar agendamento
   const handleCancel = async (id: number) => {
     try {
-      await endpoints.appointments.cancel(id, "Cancelado pelo barbeiro");
+      await handleRequest(
+        endpoints.appointments.cancel(id, "Cancelado pelo barbeiro"),
+      );
       toast.info("❌ Agendamento cancelado!");
       await fetchAppointments();
     } catch (error: any) {
-      console.error("Erro ao cancelar:", error);
       const message =
         error.response?.data?.message || "Erro ao cancelar agendamento";
       toast.error(`❌ ${message}`);
@@ -119,13 +264,13 @@ export const AppointmentsManagement = () => {
   };
 
   // ✅ Deletar agendamento
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleDelete = async (id: number) => {
     try {
-      await endpoints.appointments.delete(id);
+      await handleRequest(endpoints.appointments.delete(id));
       toast.success("🗑️ Agendamento removido!");
       await fetchAppointments();
     } catch (error: any) {
-      console.error("Erro ao deletar:", error);
       const message =
         error.response?.data?.message || "Erro ao deletar agendamento";
       toast.error(`❌ ${message}`);
@@ -133,8 +278,11 @@ export const AppointmentsManagement = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    const statusMap = {
-      pending: { label: "Pendente", className: "badge-gold" },
+    const statusMap: Record<string, { label: string; className: string }> = {
+      pending: {
+        label: "Pendente",
+        className: "badge-gold",
+      },
       confirmed: {
         label: "Confirmado",
         className:
@@ -151,72 +299,74 @@ export const AppointmentsManagement = () => {
           "bg-red-500/10 text-red-500 border-red-500/30 px-2 py-1 rounded-full text-xs font-medium border",
       },
     };
-    return statusMap[status as keyof typeof statusMap] || statusMap.pending;
+    return statusMap[status] || statusMap.pending;
   };
 
-  const getStatusActions = (appointment: Appointment) => {
-    switch (appointment.status) {
-      case "pending":
-        return (
-          <div className="flex gap-1">
-            <button
-              onClick={() => handleConfirm(appointment.id)}
-              className="p-1.5 bg-green-500/20 text-green-500 rounded-lg hover:bg-green-500/30 transition"
-              title="Confirmar"
-            >
-              <CheckCircleIcon size={16} />
-            </button>
-            <button
-              onClick={() => handleCancel(appointment.id)}
-              className="p-1.5 bg-red-500/20 text-red-500 rounded-lg hover:bg-red-500/30 transition"
-              title="Cancelar"
-            >
-              <XCircleIcon size={16} />
-            </button>
-          </div>
-        );
-      case "confirmed":
-        return (
-          <div className="flex gap-1">
-            <button
-              onClick={() => handleComplete(appointment.id)}
-              className="p-1.5 bg-blue-500/20 text-blue-500 rounded-lg hover:bg-blue-500/30 transition"
-              title="Finalizar"
-            >
-              <CheckCircleIcon size={16} />
-            </button>
-            <button
-              onClick={() => handleCancel(appointment.id)}
-              className="p-1.5 bg-red-500/20 text-red-500 rounded-lg hover:bg-red-500/30 transition"
-              title="Cancelar"
-            >
-              <XCircleIcon size={16} />
-            </button>
-          </div>
-        );
-      case "completed":
-      case "cancelled":
-        return (
-          <ConfirmPopup
-            trigger={
-              <button
-                className="p-1.5 bg-red-500/20 text-red-500 rounded-lg hover:bg-red-500/30 transition"
-                title="Excluir"
-              >
-                <XCircleIcon size={16} />
-              </button>
-            }
-            onConfirm={() => handleDelete(appointment.id)}
-            title="Excluir Agendamento"
-            message="Tem certeza que deseja excluir este agendamento?"
-            confirmText="Excluir"
-            cancelText="Cancelar"
-            variant="danger"
-          />
-        );
-      default:
-        return null;
+  // ✅ Função para obter ações disponíveis baseadas no status temporal
+  const getAvailableActions = (appointment: Appointment) => {
+    const temporalStatus = getTemporalStatus(
+      appointment.appointment_date,
+      appointment.appointment_time,
+    );
+
+    const actions = [];
+
+    // Confirmar (apenas se não estiver atrasado/passado)
+    if (
+      appointment.status === "pending" &&
+      !temporalStatus.isPast &&
+      !temporalStatus.isLate
+    ) {
+      actions.push({
+        key: "confirm",
+        label: "Confirmar",
+        icon: <CheckCircleIcon size={16} />,
+        onClick: () => handleConfirm(appointment.id, appointment),
+        className: "bg-green-500/20 text-green-500 hover:bg-green-500/30",
+      });
     }
+
+    // Finalizar (apenas se estiver em andamento, atrasado ou passado)
+    if (
+      appointment.status === "confirmed" &&
+      (temporalStatus.isPast ||
+        temporalStatus.isLate ||
+        temporalStatus.label.includes("Em andamento"))
+    ) {
+      actions.push({
+        key: "complete",
+        label: "Finalizar",
+        icon: <CheckCircleIcon size={16} />,
+        onClick: () => handleComplete(appointment.id, appointment),
+        className: "bg-blue-500/20 text-blue-500 hover:bg-blue-500/30",
+      });
+    }
+
+    // Reagendar (disponível para atrasados/passados ou sempre para pending/confirmed)
+    if (
+      appointment.status === "pending" ||
+      appointment.status === "confirmed" ||
+      canRescheduleAppointment(temporalStatus)
+    ) {
+      actions.push({
+        key: "reschedule",
+        label: "Reagendar",
+        icon: <CalendarPlusIcon size={16} />,
+        onClick: () => openRescheduleModal(appointment),
+        className: "bg-purple-500/20 text-purple-500 hover:bg-purple-500/30",
+      });
+    }
+
+    // Cancelar (sempre disponível)
+    actions.push({
+      key: "cancel",
+      label: "Cancelar",
+      icon: <XCircleIcon size={16} />,
+      onClick: () => handleCancel(appointment.id),
+      className: "bg-red-500/20 text-red-500 hover:bg-red-500/30",
+    });
+
+    return actions;
   };
 
   if (loading || isLoading) {
@@ -348,6 +498,9 @@ export const AppointmentsManagement = () => {
                 <th className="text-left py-3 px-3 text-text-muted text-sm font-medium hidden md:table-cell">
                   Status
                 </th>
+                <th className="text-left py-3 px-3 text-text-muted text-sm font-medium hidden lg:table-cell">
+                  Temporal
+                </th>
                 <th className="text-right py-3 px-3 text-text-muted text-sm font-medium">
                   Ações
                 </th>
@@ -356,10 +509,22 @@ export const AppointmentsManagement = () => {
             <tbody>
               {appointments.map((appointment) => {
                 const status = getStatusBadge(appointment.status);
+                const temporalStatus = getTemporalStatus(
+                  appointment.appointment_date,
+                  appointment.appointment_time,
+                );
+                const actions = getAvailableActions(appointment);
+
                 return (
                   <tr
                     key={appointment.id}
-                    className="border-b border-border/50 hover:bg-primary-light/50 transition"
+                    className={`border-b border-border/50 hover:bg-primary-light/50 transition ${
+                      temporalStatus.isLate
+                        ? "bg-red-500/5"
+                        : temporalStatus.label.includes("Começa em")
+                          ? "bg-green-500/5"
+                          : ""
+                    }`}
                   >
                     <td className="py-3 px-3">
                       <div className="flex items-center gap-2">
@@ -398,8 +563,15 @@ export const AppointmentsManagement = () => {
                     <td className="py-3 px-3 hidden md:table-cell">
                       <span className={status.className}>{status.label}</span>
                     </td>
+                    <td className="py-3 px-3 hidden lg:table-cell">
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium border ${temporalStatus.className}`}
+                      >
+                        {temporalStatus.label}
+                      </span>
+                    </td>
                     <td className="py-3 px-3">
-                      <div className="flex justify-end gap-1">
+                      <div className="flex justify-end gap-1 flex-wrap">
                         <button
                           onClick={() => {
                             setSelectedAppointment(appointment);
@@ -410,7 +582,17 @@ export const AppointmentsManagement = () => {
                         >
                           <EyeIcon size={16} />
                         </button>
-                        {getStatusActions(appointment)}
+
+                        {actions.map((action) => (
+                          <button
+                            key={action.key}
+                            onClick={action.onClick}
+                            className={`p-1.5 rounded-lg transition ${action.className}`}
+                            title={action.label}
+                          >
+                            {action.icon}
+                          </button>
+                        ))}
                       </div>
                     </td>
                   </tr>
@@ -483,8 +665,8 @@ export const AppointmentsManagement = () => {
                   {selectedAppointment.service?.name || "Serviço"}
                 </p>
                 <p className="text-text-muted text-sm">
-                  {formatPrice(selectedAppointment.service?.price || 0)} •{" "}
-                  {selectedAppointment.service?.duration_minutes || 0} min
+                  {formatPrice(Number(selectedAppointment.service?.price) || 0)}{" "}
+                  • {selectedAppointment.service?.duration_minutes || 0} min
                 </p>
               </div>
 
@@ -509,6 +691,26 @@ export const AppointmentsManagement = () => {
                 </span>
               </div>
 
+              {/* Status temporal */}
+              <div>
+                <p className="text-text-muted text-sm">Status do Horário</p>
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-medium border inline-block mt-1 ${
+                    getTemporalStatus(
+                      selectedAppointment.appointment_date,
+                      selectedAppointment.appointment_time,
+                    ).className
+                  }`}
+                >
+                  {
+                    getTemporalStatus(
+                      selectedAppointment.appointment_date,
+                      selectedAppointment.appointment_time,
+                    ).label
+                  }
+                </span>
+              </div>
+
               {selectedAppointment.notes && (
                 <div>
                   <p className="text-text-muted text-sm">Observações</p>
@@ -519,51 +721,21 @@ export const AppointmentsManagement = () => {
               )}
 
               <div className="flex flex-wrap gap-2 pt-4 border-t border-border">
-                {selectedAppointment.status === "pending" && (
-                  <>
-                    <button
-                      onClick={() => {
-                        handleConfirm(selectedAppointment.id);
-                        setShowDetails(false);
-                      }}
-                      className="btn-primary text-sm py-2 px-4"
-                    >
-                      Confirmar
-                    </button>
-                    <button
-                      onClick={() => {
-                        handleCancel(selectedAppointment.id);
-                        setShowDetails(false);
-                      }}
-                      className="btn-secondary text-sm py-2 px-4"
-                    >
-                      Cancelar
-                    </button>
-                  </>
-                )}
-                {selectedAppointment.status === "confirmed" && (
+                {getAvailableActions(selectedAppointment).map((action) => (
                   <button
+                    key={action.key}
                     onClick={() => {
-                      handleComplete(selectedAppointment.id);
-                      setShowDetails(false);
+                      action.onClick();
+                      if (action.key !== "reschedule") {
+                        setShowDetails(false);
+                      }
                     }}
-                    className="btn-primary text-sm py-2 px-4"
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition text-sm ${action.className}`}
                   >
-                    Finalizar
+                    {action.icon}
+                    {action.label}
                   </button>
-                )}
-                {(selectedAppointment.status === "completed" ||
-                  selectedAppointment.status === "cancelled") && (
-                  <button
-                    onClick={() => {
-                      handleDelete(selectedAppointment.id);
-                      setShowDetails(false);
-                    }}
-                    className="btn-secondary text-sm py-2 px-4 border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
-                  >
-                    Excluir
-                  </button>
-                )}
+                ))}
                 <button
                   onClick={() => setShowDetails(false)}
                   className="px-4 py-2 text-text-muted hover:text-text transition text-sm"
@@ -575,6 +747,22 @@ export const AppointmentsManagement = () => {
           </div>
         </div>
       )}
+
+      {/* Modal de Reagendamento */}
+      <RescheduleModal
+        key={appointmentToReschedule?.id || "modal"}
+        isOpen={showRescheduleModal}
+        onClose={() => {
+          setShowRescheduleModal(false);
+          setAppointmentToReschedule(null);
+        }}
+        onConfirm={handleReschedule}
+        appointment={appointmentToReschedule}
+        services={services}
+        isLoading={isServicesLoading}
+      />
     </div>
   );
 };
+
+export default AppointmentsManagement;
