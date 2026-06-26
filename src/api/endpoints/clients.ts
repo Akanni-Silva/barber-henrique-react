@@ -50,13 +50,13 @@ export const clientsEndpoint = {
 
   // Desativar cliente
   deactivate: async (id: number) => {
-    const response = await api.delete(`/clients/${id}/deactivate`);
+    const response = await api.patch(`/clients/${id}/deactivate`);
     return response.data;
   },
 
   // Ativar cliente
   activate: async (id: number) => {
-    const response = await api.post(`/clients/${id}/activate`);
+    const response = await api.patch(`/clients/${id}/activate`);
     return response.data;
   },
 

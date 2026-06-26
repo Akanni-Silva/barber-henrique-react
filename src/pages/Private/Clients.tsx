@@ -1,7 +1,8 @@
+// src/pages/Private/Clients.tsx
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/pages/Private/Clients.tsx
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
   UserIcon,
@@ -9,26 +10,26 @@ import {
   MagnifyingGlassIcon,
   XIcon,
   EyeIcon,
-  PencilIcon,
   CheckCircleIcon,
   XCircleIcon,
   CalendarIcon,
   MoneyIcon,
-  ArrowRightIcon,
+  ArrowLeftIcon,
+  UsersIcon,
+  TrendUpIcon,
 } from "@phosphor-icons/react";
 import { useApi } from "../../hooks/useApi";
 import { Spinner } from "../../components/Common/Spinner";
-import { Input } from "../../components/Common/Input";
 import { ConfirmPopup } from "../../components/Common/ConfirmPopup";
-
+import { Button } from "../../components/Common/Button";
 import { formatPrice } from "../../utils/formatPrice";
 import { formatDate } from "../../utils/formatDate";
 import type { Client } from "../../types";
+import { useGuestRedirect } from "../../hooks/useGuestRedirect";
 
 export const Clients = () => {
   const { loading, handleRequest, endpoints } = useApi();
 
-  // Estados
   const [clients, setClients] = useState<Client[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -39,7 +40,13 @@ export const Clients = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [stats, setStats] = useState<any>(null);
 
-  // Buscar clientes
+  useGuestRedirect({
+    redirectTo: "/",
+    toastMessage: "Página restrita, faça login para acessar",
+    showToast: true,
+    toastDelay: 300,
+  });
+
   useEffect(() => {
     const fetchClients = async () => {
       setIsLoading(true);
@@ -53,7 +60,6 @@ export const Clients = () => {
         setClients(data?.clients || []);
         setTotal(data?.total || 0);
 
-        // Buscar estatísticas
         const statsData = await handleRequest(endpoints.clients.getStats());
         setStats(statsData || null);
       } catch (error) {
@@ -67,10 +73,8 @@ export const Clients = () => {
     fetchClients();
   }, [page]);
 
-  // Buscar cliente por nome
   const handleSearch = async () => {
     if (!searchTerm.trim()) {
-      // Se busca vazia, recarrega lista
       const data = await handleRequest(
         endpoints.clients.findAll({ page, limit }),
       );
@@ -96,7 +100,6 @@ export const Clients = () => {
 
   const handleClearSearch = () => {
     setSearchTerm("");
-    // Recarregar lista
     const fetchClients = async () => {
       const data = await handleRequest(
         endpoints.clients.findAll({ page, limit }),
@@ -110,8 +113,7 @@ export const Clients = () => {
   const handleDeactivate = async (id: number) => {
     try {
       await handleRequest(endpoints.clients.deactivate(id));
-      toast.info("👤 Cliente desativado!");
-      // Atualizar lista
+      toast.info("Cliente desativado!");
       const updated = clients.map((client) =>
         client.id === id ? { ...client, is_active: false } : client,
       );
@@ -124,7 +126,7 @@ export const Clients = () => {
   const handleActivate = async (id: number) => {
     try {
       await handleRequest(endpoints.clients.activate(id));
-      toast.success("✅ Cliente ativado!");
+      toast.success("Cliente ativado!");
       const updated = clients.map((client) =>
         client.id === id ? { ...client, is_active: true } : client,
       );
@@ -137,16 +139,21 @@ export const Clients = () => {
   if (loading || isLoading) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center">
-        <Spinner color="#C9A84C" size={20} />
-        <p className="text-text-muted mt-4 text-sm">Carregando clientes...</p>
+        <Spinner color="#C9A84C" size={20} text="Carregando clientes..." />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <>
+      {/* ✅ Header com navegação */}
+      <div className="flex items-center gap-3 mb-6">
+        <Link
+          to="/dashboard"
+          className="p-2 text-text-muted hover:text-accent transition rounded-xl hover:bg-accent/5"
+        >
+          <ArrowLeftIcon size={20} />
+        </Link>
         <div>
           <h1 className="font-serif text-2xl font-bold text-text">
             👥 Clientes
@@ -157,75 +164,86 @@ export const Clients = () => {
         </div>
       </div>
 
-      {/* Cards de Estatísticas */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="card-primary">
+      {/* ✅ Cards de Estatísticas */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div className="bg-primary-light rounded-2xl p-4 border border-border/50">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-text-muted text-sm">Total</p>
+              <p className="text-text-muted text-xs font-medium uppercase tracking-wider">
+                Total
+              </p>
               <p className="text-2xl font-bold text-text">
                 {stats?.total_clients || 0}
               </p>
             </div>
-            <div className="p-2 bg-accent/10 rounded-lg">
-              <UserIcon size={24} className="text-accent" />
+            <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center">
+              <UsersIcon size={20} className="text-accent" />
             </div>
           </div>
         </div>
 
-        <div className="card-primary border-green-500/20">
+        <div className="bg-primary-light rounded-2xl p-4 border border-green-500/20">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-text-muted text-sm">Ativos</p>
+              <p className="text-text-muted text-xs font-medium uppercase tracking-wider">
+                Ativos
+              </p>
               <p className="text-2xl font-bold text-green-500">
                 {stats?.active_clients || 0}
               </p>
             </div>
-            <div className="p-2 bg-green-500/10 rounded-lg">
-              <CheckCircleIcon size={24} className="text-green-500" />
+            <div className="w-10 h-10 bg-green-500/10 rounded-xl flex items-center justify-center">
+              <CheckCircleIcon size={20} className="text-green-500" />
             </div>
           </div>
         </div>
 
-        <div className="card-primary border-accent/20">
+        <div className="bg-primary-light rounded-2xl p-4 border border-accent/20">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-text-muted text-sm">Receita Total</p>
-              <p className="text-2xl font-bold text-accent">
+              <p className="text-text-muted text-xs font-medium uppercase tracking-wider">
+                Receita
+              </p>
+              <p className="text-lg font-bold text-accent">
                 {formatPrice(stats?.total_revenue || 0)}
               </p>
             </div>
-            <div className="p-2 bg-accent/10 rounded-lg">
-              <MoneyIcon size={24} className="text-accent" />
+            <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center">
+              <MoneyIcon size={20} className="text-accent" />
             </div>
           </div>
         </div>
 
-        <div className="card-primary border-blue-500/20">
+        <div className="bg-primary-light rounded-2xl p-4 border border-blue-500/20">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-text-muted text-sm">Média por Cliente</p>
+              <p className="text-text-muted text-xs font-medium uppercase tracking-wider">
+                Média
+              </p>
               <p className="text-2xl font-bold text-blue-500">
                 {stats?.average_appointments_per_client || 0}
               </p>
             </div>
-            <div className="p-2 bg-blue-500/10 rounded-lg">
-              <CalendarIcon size={24} className="text-blue-500" />
+            <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center">
+              <TrendUpIcon size={20} className="text-blue-500" />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Barra de Busca */}
-      <div className="flex gap-2">
-        <div className="flex-1">
-          <Input
+      {/* ✅ Barra de Busca */}
+      <div className="flex gap-2 mb-6">
+        <div className="flex-1 relative">
+          <MagnifyingGlassIcon
+            size={20}
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted"
+          />
+          <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Buscar cliente por nome..."
-            icon={<MagnifyingGlassIcon size={20} />}
-            iconPosition="left"
+            className="w-full pl-11 pr-4 py-3 bg-primary-light border border-border/50 rounded-xl text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all"
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 handleSearch();
@@ -233,26 +251,27 @@ export const Clients = () => {
             }}
           />
         </div>
-        <button
+        <Button
+          variant="primary"
+          size="md"
+          icon={<MagnifyingGlassIcon size={18} />}
           onClick={handleSearch}
-          className="btn-primary flex items-center gap-2"
         >
           Buscar
-        </button>
+        </Button>
         {searchTerm && (
           <button
             onClick={handleClearSearch}
-            className="p-2 text-text-muted hover:text-accent transition border border-border rounded-lg hover:border-accent/50"
-            title="Limpar busca"
+            className="p-3 text-text-muted hover:text-accent transition rounded-xl border border-border/50 hover:border-accent/30"
           >
-            <XIcon size={20} />
+            <XIcon size={18} />
           </button>
         )}
       </div>
 
-      {/* Tabela */}
+      {/* ✅ Lista de Clientes */}
       {clients.length === 0 ? (
-        <div className="text-center py-12">
+        <div className="text-center py-16 bg-primary-light rounded-2xl border border-border/50">
           <div className="text-6xl mb-4">👤</div>
           <h3 className="font-serif text-xl font-bold text-text mb-2">
             Nenhum cliente encontrado
@@ -264,136 +283,113 @@ export const Clients = () => {
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="text-left py-3 px-3 text-text-muted text-sm font-medium">
-                  Cliente
-                </th>
-                <th className="text-left py-3 px-3 text-text-muted text-sm font-medium hidden sm:table-cell">
-                  Contato
-                </th>
-                <th className="text-left py-3 px-3 text-text-muted text-sm font-medium hidden md:table-cell">
-                  Última Visita
-                </th>
-                <th className="text-left py-3 px-3 text-text-muted text-sm font-medium hidden lg:table-cell">
-                  Agendamentos
-                </th>
-                <th className="text-left py-3 px-3 text-text-muted text-sm font-medium hidden lg:table-cell">
-                  Gasto
-                </th>
-                <th className="text-left py-3 px-3 text-text-muted text-sm font-medium">
-                  Status
-                </th>
-                <th className="text-right py-3 px-3 text-text-muted text-sm font-medium">
-                  Ações
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {clients.map((client) => (
-                <tr
-                  key={client.id}
-                  className="border-b border-border/50 hover:bg-primary-light/50 transition"
-                >
-                  <td className="py-3 px-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-accent/10 rounded-full flex items-center justify-center">
-                        <UserIcon size={16} className="text-accent" />
-                      </div>
-                      <div>
-                        <p className="text-text font-medium text-sm">
-                          {client.name}
-                        </p>
-                        <p className="text-text-muted text-xs sm:hidden">
-                          {client.phone}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-3 px-3 hidden sm:table-cell">
-                    <div className="flex items-center gap-2">
-                      <PhoneIcon size={16} className="text-text-muted" />
-                      <span className="text-text text-sm">{client.phone}</span>
-                    </div>
-                  </td>
-                  <td className="py-3 px-3 hidden md:table-cell">
-                    <span className="text-text text-sm">
-                      {client.last_visit ? formatDate(client.last_visit) : "—"}
+        <div className="space-y-3">
+          {clients.map((client) => (
+            <div
+              key={client.id}
+              className="bg-primary-light rounded-2xl p-4 border border-border/50 hover:border-accent/20 transition-all"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                {/* Cliente */}
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <UserIcon size={18} className="text-accent" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-text truncate">
+                      {client.name}
+                    </p>
+                    <p className="text-text-muted text-xs flex items-center gap-1">
+                      <PhoneIcon size={12} />
+                      {client.phone}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Stats */}
+                <div className="flex flex-wrap items-center gap-4 text-sm">
+                  <div className="flex items-center gap-1 text-text-muted">
+                    <CalendarIcon size={14} />
+                    <span className="text-xs">
+                      {client.last_visit
+                        ? formatDate(client.last_visit)
+                        : "Sem visitas"}
                     </span>
-                  </td>
-                  <td className="py-3 px-3 hidden lg:table-cell">
-                    <span className="text-text text-sm">
-                      {client.total_appointments}
+                  </div>
+                  <div className="flex items-center gap-1 text-text-muted">
+                    <UsersIcon size={14} />
+                    <span className="text-xs">
+                      {client.total_appointments} agend.
                     </span>
-                  </td>
-                  <td className="py-3 px-3 hidden lg:table-cell">
-                    <span className="text-accent text-sm font-medium">
+                  </div>
+                  <div className="flex items-center gap-1 text-accent font-medium">
+                    <MoneyIcon size={14} />
+                    <span className="text-xs">
                       {formatPrice(client.total_spent)}
                     </span>
-                  </td>
-                  <td className="py-3 px-3">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        client.is_active
-                          ? "bg-green-500/10 text-green-500 border-green-500/30 border"
-                          : "bg-red-500/10 text-red-500 border-red-500/30 border"
-                      }`}
-                    >
-                      {client.is_active ? "Ativo" : "Inativo"}
-                    </span>
-                  </td>
-                  <td className="py-3 px-3">
-                    <div className="flex justify-end gap-1">
-                      <button
-                        onClick={() => {
-                          setSelectedClient(client);
-                          setShowDetails(true);
-                        }}
-                        className="p-1.5 bg-accent/10 text-accent rounded-lg hover:bg-accent/20 transition"
-                        title="Ver detalhes"
-                      >
-                        <EyeIcon size={16} />
-                      </button>
-                      {client.is_active ? (
-                        <ConfirmPopup
-                          trigger={
-                            <button
-                              className="p-1.5 bg-red-500/20 text-red-500 rounded-lg hover:bg-red-500/30 transition"
-                              title="Desativar"
-                            >
-                              <XCircleIcon size={16} />
-                            </button>
-                          }
-                          onConfirm={() => handleDeactivate(client.id)}
-                          title="Desativar Cliente"
-                          message={`Tem certeza que deseja desativar o cliente "${client.name}"?`}
-                          confirmText="Desativar"
-                          cancelText="Cancelar"
-                          variant="danger"
-                        />
-                      ) : (
+                  </div>
+                </div>
+
+                {/* Ações */}
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`px-2 py-1 rounded-full text-[10px] font-medium ${
+                      client.is_active
+                        ? "bg-green-500/10 text-green-500 border-green-500/30 border"
+                        : "bg-red-500/10 text-red-500 border-red-500/30 border"
+                    }`}
+                  >
+                    {client.is_active ? "Ativo" : "Inativo"}
+                  </span>
+
+                  <button
+                    onClick={() => {
+                      setSelectedClient(client);
+                      setShowDetails(true);
+                    }}
+                    className="p-1.5 bg-accent/10 text-accent rounded-lg hover:bg-accent/20 transition"
+                    title="Ver detalhes"
+                  >
+                    <EyeIcon size={14} />
+                  </button>
+
+                  {client.is_active ? (
+                    <ConfirmPopup
+                      trigger={
                         <button
-                          onClick={() => handleActivate(client.id)}
-                          className="p-1.5 bg-green-500/20 text-green-500 rounded-lg hover:bg-green-500/30 transition"
-                          title="Ativar"
+                          className="p-1.5 bg-red-500/20 text-red-500 rounded-lg hover:bg-red-500/30 transition"
+                          title="Desativar"
                         >
-                          <CheckCircleIcon size={16} />
+                          <XCircleIcon size={14} />
                         </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                      }
+                      onConfirm={() => handleDeactivate(client.id)}
+                      title="Desativar Cliente"
+                      message={`Tem certeza que deseja desativar o cliente "${client.name}"?`}
+                      confirmText="Desativar"
+                      cancelText="Cancelar"
+                      variant="danger"
+                      size="sm"
+                    />
+                  ) : (
+                    <button
+                      onClick={() => handleActivate(client.id)}
+                      className="p-1.5 bg-green-500/20 text-green-500 rounded-lg hover:bg-green-500/30 transition"
+                      title="Ativar"
+                    >
+                      <CheckCircleIcon size={14} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Paginação */}
+      {/* ✅ Paginação */}
       {total > limit && (
-        <div className="flex justify-between items-center pt-4 border-t border-border">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t border-border/50 mt-6">
           <p className="text-text-muted text-sm">
             Mostrando {(page - 1) * limit + 1} - {Math.min(page * limit, total)}{" "}
             de {total}
@@ -402,116 +398,114 @@ export const Clients = () => {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="px-3 py-1 border border-border rounded-lg text-text-muted hover:text-text hover:border-accent/50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 border border-border/50 rounded-xl text-text-muted hover:text-text hover:border-accent/30 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >
               Anterior
             </button>
-            <span className="px-3 py-1 bg-accent/10 text-accent rounded-lg text-sm">
+            <span className="px-4 py-2 bg-accent/10 text-accent rounded-xl text-sm font-medium">
               {page}
             </span>
             <button
               onClick={() => setPage((p) => p + 1)}
               disabled={page * limit >= total}
-              className="px-3 py-1 border border-border rounded-lg text-text-muted hover:text-text hover:border-accent/50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 border border-border/50 rounded-xl text-text-muted hover:text-text hover:border-accent/30 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >
-              Próximo
+              Próxima
             </button>
           </div>
         </div>
       )}
 
-      {/* Modal de Detalhes */}
+      {/* ✅ Modal de Detalhes */}
       {showDetails && selectedClient && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-primary-light rounded-2xl max-w-md w-full max-h-[80vh] overflow-y-auto p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-serif text-xl font-bold text-text">
+        <div className="fixed inset-0 bg-black/80 flex items-end sm:items-center justify-center z-50 p-4">
+          <div className="bg-primary-light rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-slideUp">
+            <div className="sticky top-0 bg-primary-light border-b border-border/50 p-4 flex justify-between items-center z-10">
+              <h3 className="font-serif text-lg font-bold text-text">
                 Detalhes do Cliente
               </h3>
               <button
                 onClick={() => setShowDetails(false)}
-                className="text-text-muted hover:text-text transition"
+                className="p-2 text-text-muted hover:text-text transition rounded-xl hover:bg-primary"
               >
-                <XIcon size={24} />
+                <XIcon size={20} />
               </button>
             </div>
 
-            <div className="space-y-4">
-              <div className="flex items-center gap-4 pb-4 border-b border-border">
-                <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center">
-                  <UserIcon size={32} className="text-accent" />
+            <div className="p-5 space-y-4">
+              {/* Perfil */}
+              <div className="flex items-center gap-4 p-4 bg-primary/50 rounded-xl">
+                <div className="w-16 h-16 bg-accent/10 rounded-xl flex items-center justify-center">
+                  <UserIcon size={28} className="text-accent" />
                 </div>
                 <div>
-                  <p className="font-serif text-xl font-bold text-text">
+                  <p className="font-serif text-lg font-bold text-text">
                     {selectedClient.name}
                   </p>
                   <p className="text-text-muted text-sm flex items-center gap-1">
-                    <PhoneIcon size={14} />
-                    {selectedClient.phone}
+                    <PhoneIcon size={14} /> {selectedClient.phone}
                   </p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-text-muted text-sm">Agendamentos</p>
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-primary/50 rounded-xl">
+                  <p className="text-text-muted text-xs font-medium uppercase tracking-wider">
+                    Agendamentos
+                  </p>
                   <p className="text-text font-bold text-lg">
                     {selectedClient.total_appointments}
                   </p>
                 </div>
-                <div>
-                  <p className="text-text-muted text-sm">Gasto Total</p>
+                <div className="p-3 bg-primary/50 rounded-xl">
+                  <p className="text-text-muted text-xs font-medium uppercase tracking-wider">
+                    Gasto Total
+                  </p>
                   <p className="text-accent font-bold text-lg">
                     {formatPrice(selectedClient.total_spent)}
                   </p>
                 </div>
-                <div>
-                  <p className="text-text-muted text-sm">Última Visita</p>
+                <div className="p-3 bg-primary/50 rounded-xl col-span-2">
+                  <p className="text-text-muted text-xs font-medium uppercase tracking-wider">
+                    Última Visita
+                  </p>
                   <p className="text-text">
                     {selectedClient.last_visit
                       ? formatDate(selectedClient.last_visit)
                       : "—"}
                   </p>
                 </div>
-                <div>
-                  <p className="text-text-muted text-sm">Status</p>
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      selectedClient.is_active
-                        ? "bg-green-500/10 text-green-500 border-green-500/30 border"
-                        : "bg-red-500/10 text-red-500 border-red-500/30 border"
-                    }`}
-                  >
-                    {selectedClient.is_active ? "Ativo" : "Inativo"}
-                  </span>
-                </div>
+                {selectedClient.notes && (
+                  <div className="p-3 bg-primary/50 rounded-xl col-span-2">
+                    <p className="text-text-muted text-xs font-medium uppercase tracking-wider">
+                      Observações
+                    </p>
+                    <p className="text-text text-sm">{selectedClient.notes}</p>
+                  </div>
+                )}
               </div>
 
-              {selectedClient.notes && (
-                <div>
-                  <p className="text-text-muted text-sm">Observações</p>
-                  <p className="text-text text-sm bg-primary p-2 rounded-lg">
-                    {selectedClient.notes}
-                  </p>
-                </div>
-              )}
-
-              <div className="flex flex-wrap gap-2 pt-4 border-t border-border">
-                <button
-                  onClick={() => {
-                    setShowDetails(false);
-                    // Aqui poderia navegar para histórico de agendamentos
-                  }}
-                  className="btn-secondary text-sm py-2 px-4"
+              {/* Ações */}
+              <div className="flex flex-wrap gap-2 pt-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={<CalendarIcon size={16} />}
+                  onClick={() => setShowDetails(false)}
                 >
                   Ver Histórico
-                </button>
+                </Button>
                 {selectedClient.is_active ? (
                   <ConfirmPopup
                     trigger={
-                      <button className="btn-secondary text-sm py-2 px-4 border-red-500 text-red-500 hover:bg-red-500 hover:text-white">
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        icon={<XCircleIcon size={16} />}
+                      >
                         Desativar
-                      </button>
+                      </Button>
                     }
                     onConfirm={() => {
                       handleDeactivate(selectedClient.id);
@@ -522,29 +516,33 @@ export const Clients = () => {
                     confirmText="Desativar"
                     cancelText="Cancelar"
                     variant="danger"
+                    size="sm"
                   />
                 ) : (
-                  <button
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    icon={<CheckCircleIcon size={16} />}
                     onClick={() => {
                       handleActivate(selectedClient.id);
                       setShowDetails(false);
                     }}
-                    className="btn-primary text-sm py-2 px-4"
                   >
                     Ativar
-                  </button>
+                  </Button>
                 )}
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setShowDetails(false)}
-                  className="px-4 py-2 text-text-muted hover:text-text transition text-sm"
                 >
                   Fechar
-                </button>
+                </Button>
               </div>
             </div>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };

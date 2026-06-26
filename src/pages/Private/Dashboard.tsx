@@ -22,6 +22,9 @@ import { useApi } from "../../hooks/useApi";
 import { useAuth } from "../../hooks/useAuth";
 import { Spinner } from "../../components/Common/Spinner";
 import { RescheduleModal } from "../../components/Common/RescheduleModal";
+import { Button } from "../../components/Common/Button";
+import { ConfirmPopup } from "../../components/Common/ConfirmPopup";
+import { ServiceIcon } from "../../components/Common/ServiceIcon";
 import { formatPrice } from "../../utils/formatPrice";
 import { formatDate } from "../../utils/formatDate";
 import {
@@ -35,6 +38,7 @@ import type {
   StatusType,
   Product,
 } from "../../types";
+import { useGuestRedirect } from "../../hooks/useGuestRedirect";
 
 export const Dashboard = () => {
   const { user } = useAuth();
@@ -48,12 +52,10 @@ export const Dashboard = () => {
   const [loadingStats, setLoadingStats] = useState(true);
   const [services, setServices] = useState<Product[]>([]);
 
-  // Estado para o modal de reagendamento
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [appointmentToReschedule, setAppointmentToReschedule] =
     useState<Appointment | null>(null);
 
-  // ✅ Memoizar agendamentos ordenados por prioridade temporal
   const sortedTodayAppointments = useMemo(() => {
     return sortByTemporalPriority(todayAppointments);
   }, [todayAppointments]);
@@ -62,7 +64,6 @@ export const Dashboard = () => {
     return sortByTemporalPriority(upcomingAppointments);
   }, [upcomingAppointments]);
 
-  // Função auxiliar para extrair array de qualquer resposta
   const extractArray = (data: any, fallback: any[] = []): any[] => {
     if (!data) return fallback;
     if (Array.isArray(data)) return data;
@@ -82,7 +83,6 @@ export const Dashboard = () => {
     return fallback;
   };
 
-  // ✅ Buscar serviços para reagendamento
   const fetchServices = useCallback(async () => {
     try {
       const data = await handleRequest(endpoints.products.findActive());
@@ -95,7 +95,6 @@ export const Dashboard = () => {
     }
   }, [handleRequest, endpoints.products]);
 
-  // Buscar dados do dashboard
   useEffect(() => {
     const fetchDashboardData = async () => {
       setLoadingStats(true);
@@ -114,7 +113,6 @@ export const Dashboard = () => {
         setStats(statsData as AppointmentStats);
         await fetchServices();
 
-        // Mensagem informativa se não houver agendamentos hoje
         if (todayList.length === 0 && statsData?.pending > 0) {
           toast.info(
             `📅 Você tem ${statsData.pending} agendamento(s) pendente(s) para outros dias`,
@@ -123,7 +121,7 @@ export const Dashboard = () => {
       } catch (error: any) {
         const message =
           error?.response?.data?.message || "Erro ao carregar dashboard";
-        toast.error(`❌ ${message}`);
+        toast.error(`${message}`);
       } finally {
         setLoadingStats(false);
       }
@@ -132,7 +130,6 @@ export const Dashboard = () => {
     fetchDashboardData();
   }, [handleRequest, fetchServices]);
 
-  // ✅ Função para reagendar
   const handleReschedule = async (newDate: string, newTime: string) => {
     if (!appointmentToReschedule) {
       toast.error("Agendamento não encontrado");
@@ -148,7 +145,6 @@ export const Dashboard = () => {
       );
       toast.success("📅 Agendamento reagendado com sucesso!");
 
-      // Recarregar dados
       const [todayData, upcomingData] = await Promise.all([
         handleRequest(endpoints.appointments.findToday()),
         handleRequest(endpoints.appointments.findUpcoming(5)),
@@ -163,17 +159,15 @@ export const Dashboard = () => {
       console.error("Erro ao reagendar:", error);
       const message =
         error.response?.data?.message || "Erro ao reagendar agendamento";
-      toast.error(`❌ ${message}`);
+      toast.error(`${message}`);
     }
   };
 
-  // Função para abrir modal de reagendamento
   const openRescheduleModal = (appointment: Appointment) => {
     setAppointmentToReschedule(appointment);
     setShowRescheduleModal(true);
   };
 
-  // ✅ Confirmar agendamento com validação de status temporal
   const handleConfirm = async (id: number, appointment: Appointment) => {
     const temporalStatus = getTemporalStatus(
       appointment.appointment_date,
@@ -182,14 +176,14 @@ export const Dashboard = () => {
 
     if (temporalStatus.isPast || temporalStatus.isLate) {
       toast.warning(
-        "⚠️ Este agendamento está atrasado ou já passou. Considere reagendar ou cancelar.",
+        "Este agendamento está atrasado ou já passou. Considere reagendar ou cancelar.",
       );
       return;
     }
 
     try {
       await handleRequest(endpoints.appointments.confirm(id));
-      toast.success("✅ Agendamento confirmado!");
+      toast.success("Agendamento confirmado!");
 
       setTodayAppointments((prev) =>
         prev.map((app) =>
@@ -207,11 +201,10 @@ export const Dashboard = () => {
     } catch (error: any) {
       const message =
         error?.response?.data?.message || "Erro ao confirmar agendamento";
-      toast.error(`❌ ${message}`);
+      toast.error(`${message}`);
     }
   };
 
-  // ✅ Finalizar atendimento com validação
   const handleComplete = async (id: number, appointment: Appointment) => {
     const temporalStatus = getTemporalStatus(
       appointment.appointment_date,
@@ -224,14 +217,14 @@ export const Dashboard = () => {
       !temporalStatus.label.includes("Em andamento")
     ) {
       toast.warning(
-        "⚠️ Este agendamento ainda não começou. Aguarde o horário para finalizar.",
+        "Este agendamento ainda não começou. Aguarde o horário para finalizar.",
       );
       return;
     }
 
     try {
       await handleRequest(endpoints.appointments.complete(id));
-      toast.success("✅ Atendimento finalizado!");
+      toast.success("Atendimento finalizado!");
 
       setTodayAppointments((prev) =>
         prev.map((app) =>
@@ -249,17 +242,17 @@ export const Dashboard = () => {
     } catch (error: any) {
       const message =
         error?.response?.data?.message || "Erro ao finalizar atendimento";
-      toast.error(`❌ ${message}`);
+      toast.error(`${message}`);
     }
   };
 
-  // ✅ Cancelar agendamento
+  // ✅ Cancelar com confirmação
   const handleCancel = async (id: number) => {
     try {
       await handleRequest(
         endpoints.appointments.cancel(id, "Cancelado pelo barbeiro"),
       );
-      toast.info("❌ Agendamento cancelado!");
+      toast.info("Agendamento cancelado!");
 
       const appointment = todayAppointments.find((a) => a.id === id);
 
@@ -282,11 +275,10 @@ export const Dashboard = () => {
     } catch (error: any) {
       const message =
         error?.response?.data?.message || "Erro ao cancelar agendamento";
-      toast.error(`❌ ${message}`);
+      toast.error(`${message}`);
     }
   };
 
-  // ✅ Função para obter ações disponíveis baseadas no status temporal
   const getAvailableActions = (appointment: Appointment) => {
     const temporalStatus = getTemporalStatus(
       appointment.appointment_date,
@@ -295,7 +287,6 @@ export const Dashboard = () => {
 
     const actions = [];
 
-    // Confirmar (apenas se não estiver atrasado/passado)
     if (
       appointment.status === "pending" &&
       !temporalStatus.isPast &&
@@ -304,13 +295,13 @@ export const Dashboard = () => {
       actions.push({
         key: "confirm",
         label: "Confirmar",
-        icon: <CheckCircleIcon size={16} />,
+        icon: <CheckCircleIcon size={20} />,
         onClick: () => handleConfirm(appointment.id, appointment),
         className: "bg-green-500/20 text-green-500 hover:bg-green-500/30",
+        size: "w-9 h-9",
       });
     }
 
-    // Finalizar (apenas se estiver em andamento, atrasado ou passado)
     if (
       appointment.status === "confirmed" &&
       (temporalStatus.isPast ||
@@ -320,13 +311,13 @@ export const Dashboard = () => {
       actions.push({
         key: "complete",
         label: "Finalizar",
-        icon: <CheckCircleIcon size={16} />,
+        icon: <CheckCircleIcon size={20} />,
         onClick: () => handleComplete(appointment.id, appointment),
         className: "bg-blue-500/20 text-blue-500 hover:bg-blue-500/30",
+        size: "w-9 h-9",
       });
     }
 
-    // Reagendar (disponível para atrasados/passados ou sempre para pending/confirmed)
     if (
       appointment.status === "pending" ||
       appointment.status === "confirmed" ||
@@ -335,19 +326,25 @@ export const Dashboard = () => {
       actions.push({
         key: "reschedule",
         label: "Reagendar",
-        icon: <CalendarPlusIcon size={16} />,
+        icon: <CalendarPlusIcon size={20} />,
         onClick: () => openRescheduleModal(appointment),
         className: "bg-purple-500/20 text-purple-500 hover:bg-purple-500/30",
+        size: "w-9 h-9",
       });
     }
 
-    // Cancelar (sempre disponível)
+    // ✅ Cancelar com confirmação
     actions.push({
       key: "cancel",
       label: "Cancelar",
-      icon: <XCircleIcon size={16} />,
-      onClick: () => handleCancel(appointment.id),
+      icon: <XCircleIcon size={20} />,
+      onClick: () => {}, // O ConfirmPopup cuida da ação
       className: "bg-red-500/20 text-red-500 hover:bg-red-500/30",
+      size: "w-9 h-9",
+      isConfirm: true,
+      confirmTitle: "Cancelar Agendamento",
+      confirmMessage: `Tem certeza que deseja cancelar o agendamento de ${appointment.client?.name || "cliente"}?`,
+      onConfirm: () => handleCancel(appointment.id),
     });
 
     return actions;
@@ -376,7 +373,13 @@ export const Dashboard = () => {
     return statusMap[status] || statusMap.pending;
   }, []);
 
-  // SEO: Título da página
+  useGuestRedirect({
+    redirectTo: "/",
+    toastMessage: "Página restrita, faça login para acessar",
+    showToast: true,
+    toastDelay: 300,
+  });
+
   useEffect(() => {
     document.title = "Dashboard | Barbearia";
   }, []);
@@ -384,21 +387,20 @@ export const Dashboard = () => {
   if (loading || loadingStats) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center">
-        <Spinner color="#C9A84C" size={20} />
-        <p className="text-text-muted mt-4 text-sm">Carregando dashboard...</p>
+        <Spinner color="#C9A84C" size={20} text="Carregando dashboard..." />
       </div>
     );
   }
 
   return (
-    <main className="space-y-8">
-      {/* Header */}
-      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <>
+      {/* ✅ Header com saudação */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
         <div>
-          <h1 className="font-serif text-2xl font-bold text-text">
-            Olá, {user?.name || "Barbeiro"} 👋
+          <h1 className="font-serif text-xl font-bold text-text">
+            Olá, {user?.name?.split(" ")[0] || "Barbeiro"} 👋
           </h1>
-          <p className="text-text-muted text-sm">
+          <p className="text-text-muted text-xs">
             {new Date().toLocaleDateString("pt-BR", {
               weekday: "long",
               day: "numeric",
@@ -407,131 +409,123 @@ export const Dashboard = () => {
             })}
           </p>
         </div>
-        <Link
-          to="/agendamentos"
-          className="btn-primary inline-flex items-center gap-2 text-sm py-2 px-4"
-          aria-label="Ver todos os agendamentos"
+        <Button
+          variant="primary"
+          size="sm"
+          icon={<ListIcon size={16} />}
+          onClick={() => (window.location.href = "/agendamentos")}
         >
-          <ListIcon size={20} />
           Ver todos
-        </Link>
-      </header>
+        </Button>
+      </div>
 
-      {/* Cards de Estatísticas */}
-      <section aria-label="Estatísticas do dia">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="card-primary">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-text-muted text-sm">Total</p>
-                <p className="text-2xl font-bold text-text">
-                  {stats?.total || 0}
-                </p>
-              </div>
-              <div className="p-2 bg-accent/10 rounded-lg" aria-hidden="true">
-                <CalendarIcon size={24} className="text-accent" />
-              </div>
+      {/* ✅ Cards de Estatísticas */}
+      <section className="grid grid-cols-2 gap-2 mb-4">
+        <div className="bg-primary-light rounded-xl p-3 border border-border/50">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-text-muted text-[10px] font-medium uppercase tracking-wider">
+                Total
+              </p>
+              <p className="text-lg font-bold text-text">{stats?.total || 0}</p>
+            </div>
+            <div className="w-8 h-8 bg-accent/10 rounded-lg flex items-center justify-center">
+              <CalendarIcon size={16} className="text-accent" />
             </div>
           </div>
+        </div>
 
-          <div className="card-primary border-yellow-500/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-text-muted text-sm">Pendentes</p>
-                <p className="text-2xl font-bold text-yellow-500">
-                  {stats?.pending || 0}
-                </p>
-              </div>
-              <div
-                className="p-2 bg-yellow-500/10 rounded-lg"
-                aria-hidden="true"
-              >
-                <ClockCounterClockwiseIcon
-                  size={24}
-                  className="text-yellow-500"
-                />
-              </div>
+        <div className="bg-primary-light rounded-xl p-3 border border-yellow-500/20">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-text-muted text-[10px] font-medium uppercase tracking-wider">
+                Pendentes
+              </p>
+              <p className="text-lg font-bold text-yellow-500">
+                {stats?.pending || 0}
+              </p>
+            </div>
+            <div className="w-8 h-8 bg-yellow-500/10 rounded-lg flex items-center justify-center">
+              <ClockCounterClockwiseIcon
+                size={16}
+                className="text-yellow-500"
+              />
             </div>
           </div>
+        </div>
 
-          <div className="card-primary border-green-500/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-text-muted text-sm">Confirmados</p>
-                <p className="text-2xl font-bold text-green-500">
-                  {stats?.confirmed || 0}
-                </p>
-              </div>
-              <div
-                className="p-2 bg-green-500/10 rounded-lg"
-                aria-hidden="true"
-              >
-                <CheckCircleIcon size={24} className="text-green-500" />
-              </div>
+        <div className="bg-primary-light rounded-xl p-3 border border-green-500/20">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-text-muted text-[10px] font-medium uppercase tracking-wider">
+                Confirmados
+              </p>
+              <p className="text-lg font-bold text-green-500">
+                {stats?.confirmed || 0}
+              </p>
+            </div>
+            <div className="w-8 h-8 bg-green-500/10 rounded-lg flex items-center justify-center">
+              <CheckCircleIcon size={16} className="text-green-500" />
             </div>
           </div>
+        </div>
 
-          <div className="card-primary border-accent/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-text-muted text-sm">Receita</p>
-                <p className="text-2xl font-bold text-accent">
-                  {formatPrice(Number(stats?.total_revenue) || 0)}
-                </p>
-              </div>
-              <div className="p-2 bg-accent/10 rounded-lg" aria-hidden="true">
-                <MoneyIcon size={24} className="text-accent" />
-              </div>
+        <div className="bg-primary-light rounded-xl p-3 border border-accent/20">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-text-muted text-[10px] font-medium uppercase tracking-wider">
+                Receita
+              </p>
+              <p className="text-sm font-bold text-accent">
+                {formatPrice(Number(stats?.total_revenue) || 0)}
+              </p>
+            </div>
+            <div className="w-8 h-8 bg-accent/10 rounded-lg flex items-center justify-center">
+              <MoneyIcon size={16} className="text-accent" />
             </div>
           </div>
         </div>
       </section>
 
-      {/* Grid Principal */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Agendamentos de Hoje */}
+      {/* ✅ Grid Principal */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* ✅ Agendamentos de Hoje */}
         <section className="lg:col-span-2">
-          <header className="flex justify-between items-center mb-4">
-            <h2 className="font-serif text-xl font-bold text-text">
-              📅 Agendamentos de Hoje
-            </h2>
-            <span className="text-text-muted text-sm">
-              {sortedTodayAppointments.length} agendamentos
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="font-serif text-sm font-bold text-text">📅 Hoje</h2>
+            <span className="text-text-muted text-xs">
+              {sortedTodayAppointments.length}
             </span>
-          </header>
+          </div>
 
           {sortedTodayAppointments.length === 0 ? (
-            <div className="card-primary text-center py-12">
-              <div className="text-5xl mb-4" aria-hidden="true">
-                📭
-              </div>
-              <p className="text-text font-semibold">
-                Nenhum agendamento para hoje
+            <div className="bg-primary-light rounded-xl text-center py-8 border border-border/50">
+              <div className="text-3xl mb-2">📭</div>
+              <p className="text-text text-sm font-semibold">
+                Nenhum agendamento hoje
               </p>
-              <p className="text-text-muted text-sm mt-1">
+              <p className="text-text-muted text-xs mt-1">
                 {stats?.pending && stats.pending > 0
-                  ? `Você tem ${stats.pending} agendamento(s) pendente(s) para outros dias`
-                  : "Aproveite para organizar a agenda ou adicionar novos serviços"}
+                  ? `${stats.pending} pendente(s) para outros dias`
+                  : "Organize sua agenda"}
               </p>
-              <div className="mt-4 flex flex-wrap justify-center gap-2">
+              <div className="mt-3 flex flex-wrap justify-center gap-2">
                 <Link
                   to="/agendamentos"
-                  className="btn-primary inline-flex items-center gap-2 text-sm py-2 px-4"
+                  className="btn-primary text-xs py-1.5 px-3 rounded-lg"
                 >
-                  <ListIcon size={18} />
                   Ver todos
                 </Link>
                 <Link
                   to="/servicos-admin"
-                  className="btn-secondary inline-flex items-center gap-2 text-sm py-2 px-4"
+                  className="btn-secondary text-xs py-1.5 px-3 rounded-lg"
                 >
-                  <PlusCircleIcon size={18} />
                   Adicionar serviço
                 </Link>
               </div>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {sortedTodayAppointments.map((appointment) => {
                 const status = getStatusBadge(appointment.status);
                 const temporalStatus = getTemporalStatus(
@@ -541,99 +535,116 @@ export const Dashboard = () => {
                 const actions = getAvailableActions(appointment);
 
                 return (
-                  <article
+                  <div
                     key={appointment.id}
-                    className={`card-primary hover:border-accent/30 transition-all duration-200 ${
+                    className={`bg-primary-light rounded-xl p-3 border transition-all hover:border-accent/20 ${
                       temporalStatus.isLate || temporalStatus.isPast
                         ? "border-red-500/30 bg-red-500/5"
                         : temporalStatus.label.includes("Começa em")
                           ? "border-green-500/30 bg-green-500/5"
-                          : ""
+                          : "border-border/50"
                     }`}
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center flex-shrink-0">
-                          <UserIcon size={20} className="text-accent" />
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-accent/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <UserIcon size={14} className="text-accent" />
                         </div>
-                        <div>
-                          <p className="font-semibold text-text">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-text text-sm truncate">
                             {appointment.client?.name || "Cliente"}
                           </p>
-                          <div className="flex flex-wrap items-center gap-2 text-sm text-text-muted">
-                            <span className="flex items-center gap-1">
-                              <ClockIcon size={14} aria-hidden="true" />
+                          <div className="flex flex-wrap items-center gap-1.5 text-xs text-text-muted">
+                            <span className="flex items-center gap-0.5">
+                              <ClockIcon size={10} />
                               {appointment.appointment_time}
                             </span>
-                            <span
-                              className="w-1 h-1 bg-text-muted rounded-full"
-                              aria-hidden="true"
-                            ></span>
-                            <span className="flex items-center gap-1">
-                              <ScissorsIcon size={14} aria-hidden="true" />
+                            <span className="w-0.5 h-0.5 bg-text-muted rounded-full"></span>
+                            <span className="flex items-center gap-0.5">
+                              {appointment.service?.category ? (
+                                <ServiceIcon
+                                  category={appointment.service.category}
+                                  size={10}
+                                />
+                              ) : (
+                                "✂️"
+                              )}
                               {appointment.service?.name || "Serviço"}
                             </span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-2">
-                        {/* Status temporal do atendimento */}
+                      <div className="flex flex-wrap items-center gap-1.5">
                         <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium border ${temporalStatus.className}`}
+                          className={`px-1.5 py-0.5 rounded-full text-[8px] font-medium border ${temporalStatus.className}`}
                         >
                           {temporalStatus.label}
                         </span>
-
-                        {/* Status do agendamento */}
                         <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${status.className}`}
+                          className={`px-1.5 py-0.5 rounded-full text-[8px] font-medium ${status.className}`}
                         >
                           {status.label}
                         </span>
-
-                        {/* Ações dinâmicas */}
-                        <div className="flex gap-1">
-                          {actions.map((action) => (
-                            <button
-                              key={action.key}
-                              onClick={action.onClick}
-                              className={`p-1.5 rounded-lg transition ${action.className}`}
-                              title={action.label}
-                            >
-                              {action.icon}
-                            </button>
-                          ))}
+                        <div className="flex gap-1 ml-auto">
+                          {actions.map((action) => {
+                            if (action.isConfirm) {
+                              return (
+                                <ConfirmPopup
+                                  key={action.key}
+                                  trigger={
+                                    <button
+                                      className={`rounded-lg transition ${action.className} ${action.size} flex items-center justify-center`}
+                                      title={action.label}
+                                    >
+                                      {action.icon}
+                                    </button>
+                                  }
+                                  onConfirm={action.onConfirm}
+                                  title={action.confirmTitle || "Confirmar"}
+                                  message={action.confirmMessage || ""}
+                                  confirmText="Confirmar"
+                                  cancelText="Cancelar"
+                                  variant="danger"
+                                  size="sm"
+                                />
+                              );
+                            }
+                            return (
+                              <button
+                                key={action.key}
+                                onClick={action.onClick}
+                                className={`rounded-lg transition ${action.className} ${action.size} flex items-center justify-center`}
+                                title={action.label}
+                              >
+                                {action.icon}
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
                     </div>
-                  </article>
+                  </div>
                 );
               })}
             </div>
           )}
         </section>
 
-        {/* Sidebar - Próximos Agendamentos com status temporal e ações */}
-        <aside className="space-y-6">
+        {/* ✅ Sidebar */}
+        <aside className="space-y-4">
+          {/* ✅ Próximos Agendamentos */}
           <section>
-            <h2 className="font-serif text-xl font-bold text-text mb-4">
+            <h2 className="font-serif text-sm font-bold text-text mb-3">
               📌 Próximos
             </h2>
             {sortedUpcomingAppointments.length === 0 ? (
-              <div className="card-primary text-center py-8">
-                <div className="text-4xl mb-2" aria-hidden="true">
-                  📅
-                </div>
-                <p className="text-text-muted text-sm">
-                  Nenhum agendamento futuro
-                </p>
-                <p className="text-text-muted text-xs mt-1">
-                  Os próximos agendamentos aparecerão aqui
-                </p>
+              <div className="bg-primary-light rounded-xl text-center py-6 border border-border/50">
+                <div className="text-2xl mb-1">📅</div>
+                <p className="text-text-muted text-xs">Nenhum futuro</p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {sortedUpcomingAppointments.map((app) => {
                   const temporalStatus = getTemporalStatus(
                     app.appointment_date,
@@ -642,111 +653,112 @@ export const Dashboard = () => {
                   const actions = getAvailableActions(app);
 
                   return (
-                    <article
+                    <div
                       key={app.id}
-                      className={`card-primary p-3 hover:border-accent/30 transition ${
+                      className={`bg-primary-light rounded-xl p-2.5 border transition-all hover:border-accent/20 ${
                         temporalStatus.isLate || temporalStatus.isPast
                           ? "border-red-500/30 bg-red-500/5"
-                          : ""
+                          : "border-border/50"
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-semibold text-text text-sm">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-text text-xs truncate">
                             {app.client?.name || "Cliente"}
                           </p>
-                          <p className="text-text-muted text-xs">
+                          <p className="text-text-muted text-[10px]">
                             {formatDate(app.appointment_date)} •{" "}
                             {app.appointment_time}
                           </p>
                         </div>
-                        <div className="flex flex-col items-end gap-1">
+                        <div className="flex flex-col items-end gap-0.5">
                           <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${temporalStatus.className}`}
+                            className={`px-1.5 py-0.5 rounded-full text-[8px] font-medium border ${temporalStatus.className}`}
                           >
                             {temporalStatus.label}
                           </span>
-                          <span className="badge-gold text-[10px]">
+                          <span className="badge-gold text-[8px] px-1.5 py-0.5">
                             {app.service?.name || "Serviço"}
                           </span>
-                          {/* Ações rápidas para próximos agendamentos */}
-                          <div className="flex gap-1 mt-1">
-                            {actions.slice(0, 2).map((action) => (
-                              <button
-                                key={action.key}
-                                onClick={action.onClick}
-                                className={`p-1 rounded-lg transition ${action.className}`}
-                                title={action.label}
-                              >
-                                {action.icon}
-                              </button>
-                            ))}
+                          <div className="flex gap-1">
+                            {actions.slice(0, 2).map((action) => {
+                              if (action.isConfirm) {
+                                return (
+                                  <ConfirmPopup
+                                    key={action.key}
+                                    trigger={
+                                      <button
+                                        className={`rounded-lg transition ${action.className} ${action.size} flex items-center justify-center`}
+                                        title={action.label}
+                                      >
+                                        {action.icon}
+                                      </button>
+                                    }
+                                    onConfirm={action.onConfirm}
+                                    title={action.confirmTitle || "Confirmar"}
+                                    message={action.confirmMessage || ""}
+                                    confirmText="Confirmar"
+                                    cancelText="Cancelar"
+                                    variant="danger"
+                                    size="sm"
+                                  />
+                                );
+                              }
+                              return (
+                                <button
+                                  key={action.key}
+                                  onClick={action.onClick}
+                                  className={`rounded-lg transition ${action.className} ${action.size} flex items-center justify-center`}
+                                  title={action.label}
+                                >
+                                  {action.icon}
+                                </button>
+                              );
+                            })}
                           </div>
                         </div>
                       </div>
-                    </article>
+                    </div>
                   );
                 })}
               </div>
             )}
           </section>
 
-          {/* Ações Rápidas */}
+          {/* ✅ Ações Rápidas */}
           <section>
-            <h2 className="font-serif text-xl font-bold text-text mb-4">
-              ⚡ Ações Rápidas
+            <h2 className="font-serif text-sm font-bold text-text mb-3">
+              ⚡ Ações
             </h2>
-            <nav className="space-y-2" aria-label="Ações rápidas">
-              <Link
-                to="/agendamentos"
-                className="card-primary flex items-center justify-between hover:border-accent/30 transition p-3"
-              >
-                <span className="text-text">Gerenciar Agendamentos</span>
-                <ArrowRightIcon
-                  size={20}
-                  className="text-accent"
-                  aria-hidden="true"
-                />
-              </Link>
-              <Link
-                to="/clientes"
-                className="card-primary flex items-center justify-between hover:border-accent/30 transition p-3"
-              >
-                <span className="text-text">Ver Clientes</span>
-                <ArrowRightIcon
-                  size={20}
-                  className="text-accent"
-                  aria-hidden="true"
-                />
-              </Link>
-              <Link
-                to="/servicos-admin"
-                className="card-primary flex items-center justify-between hover:border-accent/30 transition p-3"
-              >
-                <span className="text-text">Gerenciar Serviços</span>
-                <ArrowRightIcon
-                  size={20}
-                  className="text-accent"
-                  aria-hidden="true"
-                />
-              </Link>
-              <Link
-                to="/agenda"
-                className="card-primary flex items-center justify-between hover:border-accent/30 transition p-3"
-              >
-                <span className="text-text">Configurar Agenda</span>
-                <ArrowRightIcon
-                  size={20}
-                  className="text-accent"
-                  aria-hidden="true"
-                />
-              </Link>
+            <nav className="space-y-1.5">
+              {[
+                { to: "/agendamentos", label: "Agendamentos", icon: ListIcon },
+                { to: "/clientes", label: "Clientes", icon: UserIcon },
+                {
+                  to: "/servicos-admin",
+                  label: "Serviços",
+                  icon: ScissorsIcon,
+                },
+                { to: "/agenda", label: "Agenda", icon: CalendarIcon },
+              ].map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className="bg-primary-light rounded-xl flex items-center justify-between p-2.5 border border-border/50 hover:border-accent/20 transition-all"
+                >
+                  <span className="text-text text-xs flex items-center gap-2">
+                    <item.icon size={14} className="text-accent" />
+                    {item.label}
+                  </span>
+                  <ArrowRightIcon size={14} className="text-accent" />
+                </Link>
+              ))}
             </nav>
           </section>
         </aside>
       </div>
 
-      {/* Modal de Reagendamento */}
+      {/* ✅ Modal de Reagendamento */}
       <RescheduleModal
         key={appointmentToReschedule?.id || "modal"}
         isOpen={showRescheduleModal}
@@ -758,7 +770,7 @@ export const Dashboard = () => {
         appointment={appointmentToReschedule}
         services={services}
       />
-    </main>
+    </>
   );
 };
 

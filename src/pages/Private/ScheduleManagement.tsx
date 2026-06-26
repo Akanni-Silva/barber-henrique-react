@@ -1,31 +1,34 @@
 // src/pages/Private/ScheduleManagement.tsx
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState, useEffect, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
   ClockIcon,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  CalendarIcon,
   PlusIcon,
   PencilIcon,
   XIcon,
   CheckCircleIcon,
   XCircleIcon,
   CopySimpleIcon,
-
+  ArrowLeftIcon,
+  TrashIcon,
 } from "@phosphor-icons/react";
 import { useApi } from "../../hooks/useApi";
 import { Spinner } from "../../components/Common/Spinner";
 import { Input } from "../../components/Common/Input";
 import { ConfirmPopup } from "../../components/Common/ConfirmPopup";
+import { Button } from "../../components/Common/Button";
 import type { BlockedDate, WorkSchedule } from "../../types";
+import { useGuestRedirect } from "../../hooks/useGuestRedirect";
 
 const DAYS_OF_WEEK = [
   { value: 0, label: "Domingo" },
-  { value: 1, label: "Segunda-feira" },
-  { value: 2, label: "Terça-feira" },
-  { value: 3, label: "Quarta-feira" },
-  { value: 4, label: "Quinta-feira" },
-  { value: 5, label: "Sexta-feira" },
+  { value: 1, label: "Segunda" },
+  { value: 2, label: "Terça" },
+  { value: 3, label: "Quarta" },
+  { value: 4, label: "Quinta" },
+  { value: 5, label: "Sexta" },
   { value: 6, label: "Sábado" },
 ];
 
@@ -36,7 +39,6 @@ export const ScheduleManagement = () => {
   const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Estados do Modal de Horário (individual)
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<WorkSchedule | null>(
     null,
@@ -50,7 +52,6 @@ export const ScheduleManagement = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Estados do Modal de Data Bloqueada
   const [showBlockModal, setShowBlockModal] = useState(false);
   const [blockForm, setBlockForm] = useState({
     blocked_date: "",
@@ -59,7 +60,6 @@ export const ScheduleManagement = () => {
   });
   const [isBlockSubmitting, setIsBlockSubmitting] = useState(false);
 
-  // ✅ Estados para edição em massa
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [bulkForm, setBulkForm] = useState({
     selectedDays: [] as number[],
@@ -70,7 +70,13 @@ export const ScheduleManagement = () => {
   });
   const [isBulkSubmitting, setIsBulkSubmitting] = useState(false);
 
-  // ✅ Buscar dados
+  useGuestRedirect({
+    redirectTo: "/",
+    toastMessage: "Página restrita, faça login para acessar",
+    showToast: true,
+    toastDelay: 300,
+  });
+
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
@@ -92,7 +98,6 @@ export const ScheduleManagement = () => {
     fetchData();
   }, []);
 
-  // ✅ Criar um mapa usando day_of_week como chave
   const schedulesMap = useMemo(() => {
     const map = new Map<number, WorkSchedule>();
     workSchedules.forEach((schedule) => {
@@ -101,7 +106,6 @@ export const ScheduleManagement = () => {
     return map;
   }, [workSchedules]);
 
-  // ✅ Abrir modal de horário com o dia selecionado
   const handleOpenScheduleModal = (dayOfWeek: number) => {
     const existingSchedule = schedulesMap.get(dayOfWeek);
 
@@ -127,7 +131,6 @@ export const ScheduleManagement = () => {
     setShowScheduleModal(true);
   };
 
-  // Salvar horário individual
   const handleSaveSchedule = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -145,7 +148,7 @@ export const ScheduleManagement = () => {
         }),
       );
 
-      toast.success("✅ Horário salvo com sucesso!");
+      toast.success("Horário salvo com sucesso!");
       setShowScheduleModal(false);
 
       const schedules = await handleRequest(
@@ -159,9 +162,7 @@ export const ScheduleManagement = () => {
     }
   };
 
-  // ✅ Abrir modal de edição em massa
   const handleOpenBulkModal = () => {
-    // Pré-selecionar dias que estão abertos
     const workingDays = DAYS_OF_WEEK.map((day) => day.value).filter(
       (dayValue) => schedulesMap.get(dayValue)?.is_working !== false,
     );
@@ -176,7 +177,6 @@ export const ScheduleManagement = () => {
     setShowBulkModal(true);
   };
 
-  // ✅ Alternar seleção de um dia
   const toggleDaySelection = (dayValue: number) => {
     setBulkForm((prev) => {
       const selected = prev.selectedDays.includes(dayValue)
@@ -186,7 +186,6 @@ export const ScheduleManagement = () => {
     });
   };
 
-  // ✅ Selecionar/Deselecionar todos os dias
   const toggleAllDays = () => {
     setBulkForm((prev) => {
       const allDays = DAYS_OF_WEEK.map((d) => d.value);
@@ -198,7 +197,6 @@ export const ScheduleManagement = () => {
     });
   };
 
-  // ✅ Salvar edição em massa
   const handleSaveBulk = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -231,15 +229,14 @@ export const ScheduleManagement = () => {
       }
 
       if (successCount > 0) {
-        toast.success(`✅ ${successCount} dia(s) salvo(s) com sucesso!`);
+        toast.success(`${successCount} dia(s) salvo(s) com sucesso!`);
       }
       if (errorCount > 0) {
-        toast.warning(`⚠️ ${errorCount} dia(s) falharam ao salvar`);
+        toast.warning(`${errorCount} dia(s) falharam ao salvar`);
       }
 
       setShowBulkModal(false);
 
-      // Recarregar
       const schedules = await handleRequest(
         endpoints.schedule.findAllWorkSchedules(),
       );
@@ -252,7 +249,6 @@ export const ScheduleManagement = () => {
     }
   };
 
-  // Abrir modal de data bloqueada
   const handleOpenBlockModal = () => {
     setBlockForm({
       blocked_date: "",
@@ -262,7 +258,6 @@ export const ScheduleManagement = () => {
     setShowBlockModal(true);
   };
 
-  // Salvar data bloqueada
   const handleSaveBlock = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -281,7 +276,7 @@ export const ScheduleManagement = () => {
         }),
       );
 
-      toast.success("✅ Data bloqueada com sucesso!");
+      toast.success("Data bloqueada com sucesso!");
       setShowBlockModal(false);
 
       const blocked = await handleRequest(
@@ -295,11 +290,10 @@ export const ScheduleManagement = () => {
     }
   };
 
-  // Desbloquear data
   const handleUnblock = async (id: number) => {
     try {
       await handleRequest(endpoints.schedule.unblockDate(id));
-      toast.info("📅 Data desbloqueada!");
+      toast.info("Data desbloqueada!");
 
       const updated = blockedDates.filter((b) => b.id !== id);
       setBlockedDates(updated);
@@ -315,53 +309,58 @@ export const ScheduleManagement = () => {
   if (loading || isLoading) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center">
-        <Spinner color="#C9A84C" size={20} />
-        <p className="text-text-muted mt-4 text-sm">Carregando agenda...</p>
+        <Spinner color="#C9A84C" size={20} text="Carregando agenda..." />
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <>
+      {/* ✅ Header com navegação */}
+      <div className="flex items-center gap-2 mb-4">
+        <Link
+          to="/dashboard"
+          className="p-2 text-text-muted hover:text-accent transition rounded-xl hover:bg-accent/5"
+        >
+          <ArrowLeftIcon size={18} />
+        </Link>
         <div>
-          <h1 className="font-serif text-2xl font-bold text-text">
-            📅 Gerenciar Agenda
-          </h1>
-          <p className="text-text-muted text-sm">
-            Configure os horários de funcionamento da barbearia
+          <h1 className="font-serif text-lg font-bold text-text">📅 Agenda</h1>
+          <p className="text-text-muted text-xs">
+            Configure os horários da barbearia
           </p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={handleOpenBulkModal}
-            className="btn-secondary inline-flex items-center gap-2 text-sm py-2 px-4"
-          >
-            <CopySimpleIcon size={20} />
-            Edição em Massa
-          </button>
-          <button
-            onClick={handleOpenBlockModal}
-            className="btn-primary inline-flex items-center gap-2 text-sm py-2 px-4"
-          >
-            <PlusIcon size={20} />
-            Bloquear Data
-          </button>
         </div>
       </div>
 
-      {/* Grid Principal */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Horários de Trabalho */}
-        <div>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="font-serif text-xl font-bold text-text">
-              🕐 Horários de Trabalho
-            </h2>
-          </div>
+      {/* ✅ Ações Rápidas - Compactas */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        <Button
+          variant="primary"
+          size="sm"
+          icon={<CopySimpleIcon size={16} />}
+          onClick={handleOpenBulkModal}
+        >
+          Edição em Massa
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          icon={<PlusIcon size={16} />}
+          onClick={handleOpenBlockModal}
+        >
+          Bloquear Data
+        </Button>
+      </div>
 
-          <div className="space-y-2">
+      {/* ✅ Grid Principal */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* ✅ Horários de Trabalho */}
+        <div>
+          <h2 className="font-serif text-sm font-bold text-text mb-3">
+            🕐 Horários
+          </h2>
+
+          <div className="space-y-1.5">
             {DAYS_OF_WEEK.map((day) => {
               const schedule = schedulesMap.get(day.value);
               const isWorking = schedule?.is_working ?? false;
@@ -373,98 +372,111 @@ export const ScheduleManagement = () => {
                 <div
                   key={day.value}
                   onClick={() => handleOpenScheduleModal(day.value)}
-                  className="card-primary flex items-center justify-between hover:border-accent/30 transition p-3 cursor-pointer group"
+                  className={`bg-primary-light rounded-xl p-3 border cursor-pointer transition-all hover:border-accent/30 ${
+                    isWorking
+                      ? "border-border/50 hover:bg-accent/5"
+                      : "border-red-500/20 hover:border-red-500/30"
+                  }`}
                 >
-                  <div>
-                    <p className="font-semibold text-text">{day.label}</p>
-                    <p
-                      className={`text-sm ${isWorking ? "text-text-muted" : "text-red-500"}`}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-text text-sm">
+                        {day.label}
+                      </p>
+                      <p
+                        className={`text-xs ${isWorking ? "text-text-muted" : "text-red-500"}`}
+                      >
+                        {isWorking ? (
+                          <>
+                            <ClockIcon size={12} className="inline mr-1" />
+                            {timeStr} • {schedule?.slot_duration || 30}min
+                          </>
+                        ) : (
+                          "Fechado"
+                        )}
+                      </p>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenScheduleModal(day.value);
+                      }}
+                      className="p-1.5 bg-accent/10 text-accent rounded-lg hover:bg-accent/20 transition"
+                      title="Editar"
                     >
-                      {isWorking ? (
-                        <>
-                          <ClockIcon size={14} className="inline mr-1" />
-                          {timeStr} • {schedule?.slot_duration || 30} min
-                        </>
-                      ) : (
-                        "Fechado"
-                      )}
-                    </p>
+                      <PencilIcon size={14} />
+                    </button>
                   </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleOpenScheduleModal(day.value);
-                    }}
-                    className="p-1.5 bg-accent/10 text-accent rounded-lg hover:bg-accent/20 transition opacity-0 group-hover:opacity-100"
-                    title="Editar"
-                  >
-                    <PencilIcon size={16} />
-                  </button>
                 </div>
               );
             })}
           </div>
 
-          <div className="mt-4 text-sm text-text-muted">
-            <p>💡 Clique em qualquer dia para configurar o horário.</p>
-          </div>
+          <p className="text-text-muted text-[10px] mt-2 text-center">
+            💡 Clique em qualquer dia para configurar
+          </p>
         </div>
 
-        {/* Datas Bloqueadas */}
+        {/* ✅ Datas Bloqueadas */}
         <div>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="font-serif text-xl font-bold text-text">
-              🚫 Datas Bloqueadas
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="font-serif text-sm font-bold text-text">
+              🚫 Bloqueios
             </h2>
-            <span className="text-text-muted text-sm">
-              {blockedDates.length} bloqueios
+            <span className="text-text-muted text-xs">
+              {blockedDates.length}
             </span>
           </div>
 
           {blockedDates.length === 0 ? (
-            <div className="card-primary text-center py-8">
-              <div className="text-4xl mb-3">📅</div>
-              <p className="text-text-muted">Nenhuma data bloqueada</p>
-              <p className="text-text-muted text-sm">
-                Bloqueie feriados ou dias de folga
+            <div className="bg-primary-light rounded-xl text-center py-8 border border-border/50">
+              <div className="text-3xl mb-2">📅</div>
+              <p className="text-text-muted text-xs">Nenhuma data bloqueada</p>
+              <p className="text-text-muted text-[10px]">
+                Bloqueie feriados ou folgas
               </p>
             </div>
           ) : (
-            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
+            <div className="space-y-1.5 max-h-[300px] overflow-y-auto pr-1">
               {blockedDates.map((block) => (
                 <div
                   key={block.id}
-                  className="card-primary flex items-center justify-between hover:border-red-500/30 transition p-3 border-red-500/10"
+                  className="bg-primary-light rounded-xl p-3 border border-red-500/20 hover:border-red-500/30 transition-all"
                 >
-                  <div>
-                    <p className="font-semibold text-text">
-                      {new Date(block.blocked_date).toLocaleDateString("pt-BR")}
-                    </p>
-                    <p className="text-text-muted text-sm">
-                      {block.reason || "Sem motivo especificado"}
-                      {!block.is_full_day && (
-                        <span className="ml-2 text-xs">
-                          {block.start_time} - {block.end_time}
-                        </span>
-                      )}
-                    </p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-text text-sm">
+                        {new Date(block.blocked_date).toLocaleDateString(
+                          "pt-BR",
+                        )}
+                      </p>
+                      <p className="text-text-muted text-xs">
+                        {block.reason || "Sem motivo"}
+                        {!block.is_full_day && (
+                          <span className="ml-2 text-[10px]">
+                            {block.start_time} - {block.end_time}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    <ConfirmPopup
+                      trigger={
+                        <button
+                          className="p-1.5 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition"
+                          title="Desbloquear"
+                        >
+                          <TrashIcon size={14} />
+                        </button>
+                      }
+                      onConfirm={() => handleUnblock(block.id)}
+                      title="Desbloquear Data"
+                      message={`Desbloquear ${new Date(block.blocked_date).toLocaleDateString("pt-BR")}?`}
+                      confirmText="Desbloquear"
+                      cancelText="Cancelar"
+                      variant="danger"
+                      size="sm"
+                    />
                   </div>
-                  <ConfirmPopup
-                    trigger={
-                      <button
-                        className="p-1.5 bg-red-500/20 text-red-500 rounded-lg hover:bg-red-500/30 transition"
-                        title="Desbloquear"
-                      >
-                        <XIcon size={16} />
-                      </button>
-                    }
-                    onConfirm={() => handleUnblock(block.id)}
-                    title="Desbloquear Data"
-                    message={`Tem certeza que deseja desbloquear ${new Date(block.blocked_date).toLocaleDateString("pt-BR")}?`}
-                    confirmText="Desbloquear"
-                    cancelText="Cancelar"
-                    variant="danger"
-                  />
                 </div>
               ))}
             </div>
@@ -472,26 +484,26 @@ export const ScheduleManagement = () => {
         </div>
       </div>
 
-      {/* Modal de Horário Individual */}
+      {/* ✅ Modal de Horário Individual - Compacto */}
       {showScheduleModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-primary-light rounded-2xl max-w-md w-full p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-serif text-xl font-bold text-text">
+        <div className="fixed inset-0 bg-black/80 flex items-end sm:items-center justify-center z-50 p-4">
+          <div className="bg-primary-light rounded-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto animate-slideUp">
+            <div className="sticky top-0 bg-primary-light border-b border-border/50 p-3 flex justify-between items-center z-10">
+              <h3 className="font-serif text-base font-bold text-text">
                 {editingSchedule ? "Editar Horário" : "Configurar Horário"}
               </h3>
               <button
                 onClick={() => setShowScheduleModal(false)}
-                className="text-text-muted hover:text-text transition"
+                className="p-1.5 text-text-muted hover:text-text transition rounded-lg hover:bg-primary"
                 disabled={isSubmitting}
               >
-                <XIcon size={24} />
+                <XIcon size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveSchedule} className="space-y-4">
+            <form onSubmit={handleSaveSchedule} className="p-4 space-y-3">
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1.5">
+                <label className="block text-xs font-medium text-text-secondary mb-1">
                   Dia da Semana
                 </label>
                 <select
@@ -502,7 +514,7 @@ export const ScheduleManagement = () => {
                       day_of_week: parseInt(e.target.value),
                     })
                   }
-                  className="input-primary"
+                  className="w-full px-3 py-2 bg-primary/50 border border-border/50 rounded-lg text-sm text-text focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all disabled:opacity-50"
                   disabled={!!editingSchedule}
                 >
                   {DAYS_OF_WEEK.map((day) => (
@@ -518,8 +530,8 @@ export const ScheduleManagement = () => {
                 )}
               </div>
 
-              <div className="flex items-center gap-3">
-                <label className="text-sm font-medium text-text-secondary">
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-medium text-text-secondary">
                   Funciona?
                 </label>
                 <button
@@ -530,7 +542,7 @@ export const ScheduleManagement = () => {
                       is_working: !scheduleForm.is_working,
                     })
                   }
-                  className={`px-4 py-2 rounded-lg transition text-sm font-medium ${
+                  className={`px-3 py-1.5 rounded-lg transition text-xs font-medium ${
                     scheduleForm.is_working
                       ? "bg-green-500/20 text-green-500 border-green-500/30 border"
                       : "bg-red-500/20 text-red-500 border-red-500/30 border"
@@ -542,120 +554,131 @@ export const ScheduleManagement = () => {
 
               {scheduleForm.is_working && (
                 <>
-                  <div className="grid grid-cols-2 gap-4">
-                    <Input
-                      label="Abre às"
-                      type="time"
-                      value={scheduleForm.start_time}
-                      onChange={(e) =>
-                        setScheduleForm({
-                          ...scheduleForm,
-                          start_time: e.target.value,
-                        })
-                      }
-                      required
-                      disabled={isSubmitting}
-                    />
-                    <Input
-                      label="Fecha às"
-                      type="time"
-                      value={scheduleForm.end_time}
-                      onChange={(e) =>
-                        setScheduleForm({
-                          ...scheduleForm,
-                          end_time: e.target.value,
-                        })
-                      }
-                      required
-                      disabled={isSubmitting}
-                    />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs font-medium text-text-secondary mb-1">
+                        Abre às
+                      </label>
+                      <input
+                        type="time"
+                        value={scheduleForm.start_time}
+                        onChange={(e) =>
+                          setScheduleForm({
+                            ...scheduleForm,
+                            start_time: e.target.value,
+                          })
+                        }
+                        className="w-full px-3 py-2 bg-primary/50 border border-border/50 rounded-lg text-sm text-text focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all disabled:opacity-50"
+                        required
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-text-secondary mb-1">
+                        Fecha às
+                      </label>
+                      <input
+                        type="time"
+                        value={scheduleForm.end_time}
+                        onChange={(e) =>
+                          setScheduleForm({
+                            ...scheduleForm,
+                            end_time: e.target.value,
+                          })
+                        }
+                        className="w-full px-3 py-2 bg-primary/50 border border-border/50 rounded-lg text-sm text-text focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all disabled:opacity-50"
+                        required
+                        disabled={isSubmitting}
+                      />
+                    </div>
                   </div>
 
-                  <Input
-                    label="Duração do Slot (minutos)"
-                    type="number"
-                    placeholder="30"
-                    value={scheduleForm.slot_duration}
-                    onChange={(e) =>
-                      setScheduleForm({
-                        ...scheduleForm,
-                        slot_duration: parseInt(e.target.value) || 30,
-                      })
-                    }
-                    required
-                    disabled={isSubmitting}
-                    helperText="Tempo de cada agendamento"
-                  />
+                  <div>
+                    <label className="block text-xs font-medium text-text-secondary mb-1">
+                      Duração do Slot (min)
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="30"
+                      value={scheduleForm.slot_duration}
+                      onChange={(e) =>
+                        setScheduleForm({
+                          ...scheduleForm,
+                          slot_duration: parseInt(e.target.value) || 30,
+                        })
+                      }
+                      className="w-full px-3 py-2 bg-primary/50 border border-border/50 rounded-lg text-sm text-text focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all disabled:opacity-50"
+                      required
+                      disabled={isSubmitting}
+                    />
+                    <p className="text-text-muted text-[10px] mt-0.5">
+                      Tempo de cada agendamento
+                    </p>
+                  </div>
                 </>
               )}
 
-              <div className="flex gap-3 pt-2">
-                <button
+              <div className="flex flex-col-reverse sm:flex-row gap-2 pt-1">
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="sm"
+                  fullWidth
                   onClick={() => setShowScheduleModal(false)}
-                  className="flex-1 px-4 py-2 text-text-secondary hover:text-text transition border border-border rounded-lg hover:border-border-light"
                   disabled={isSubmitting}
                 >
                   Cancelar
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="flex-1 btn-primary flex items-center justify-center gap-2"
+                  variant="primary"
+                  size="sm"
+                  fullWidth
+                  icon={<CheckCircleIcon size={16} />}
+                  loading={isSubmitting}
                 >
-                  {isSubmitting ? (
-                    <>
-                      <Spinner color="#1A1A1A" size={10} />
-                      <span>Salvando...</span>
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircleIcon size={18} />
-                      <span>Salvar</span>
-                    </>
-                  )}
-                </button>
+                  Salvar
+                </Button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Modal de Edição em Massa */}
+      {/* ✅ Modal de Edição em Massa - Compacto */}
       {showBulkModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-primary-light rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-serif text-xl font-bold text-text">
+        <div className="fixed inset-0 bg-black/80 flex items-end sm:items-center justify-center z-50 p-4">
+          <div className="bg-primary-light rounded-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto animate-slideUp">
+            <div className="sticky top-0 bg-primary-light border-b border-border/50 p-3 flex justify-between items-center z-10">
+              <h3 className="font-serif text-base font-bold text-text">
                 Edição em Massa
               </h3>
               <button
                 onClick={() => setShowBulkModal(false)}
-                className="text-text-muted hover:text-text transition"
+                className="p-1.5 text-text-muted hover:text-text transition rounded-lg hover:bg-primary"
                 disabled={isBulkSubmitting}
               >
-                <XIcon size={24} />
+                <XIcon size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveBulk} className="space-y-4">
-              {/* Seleção de Dias */}
+            <form onSubmit={handleSaveBulk} className="p-4 space-y-3">
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-2">
+                <label className="block text-xs font-medium text-text-secondary mb-1.5">
                   Dias da Semana
                 </label>
-                <div className="flex flex-wrap gap-2 mb-2">
+                <div className="flex flex-wrap gap-1.5 mb-1.5">
                   <button
                     type="button"
                     onClick={toggleAllDays}
-                    className="text-xs px-2 py-1 bg-accent/10 text-accent rounded hover:bg-accent/20 transition"
+                    className="text-[10px] px-2 py-1 bg-accent/10 text-accent rounded-lg hover:bg-accent/20 transition"
                   >
                     {bulkForm.selectedDays.length === DAYS_OF_WEEK.length
                       ? "Deselecionar Todos"
                       : "Selecionar Todos"}
                   </button>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-1.5">
                   {DAYS_OF_WEEK.map((day) => {
                     const isSelected = bulkForm.selectedDays.includes(
                       day.value,
@@ -665,10 +688,10 @@ export const ScheduleManagement = () => {
                         key={day.value}
                         type="button"
                         onClick={() => toggleDaySelection(day.value)}
-                        className={`p-2 rounded-lg border-2 text-sm transition ${
+                        className={`p-2 rounded-lg border-2 text-xs transition ${
                           isSelected
                             ? "border-accent bg-accent/10 text-accent"
-                            : "border-border text-text-secondary hover:border-border-light"
+                            : "border-border/50 text-text-secondary hover:border-border-light"
                         }`}
                       >
                         {day.label}
@@ -676,13 +699,13 @@ export const ScheduleManagement = () => {
                     );
                   })}
                 </div>
-                <p className="text-text-muted text-xs mt-2">
+                <p className="text-text-muted text-[10px] mt-1.5">
                   {bulkForm.selectedDays.length} dia(s) selecionado(s)
                 </p>
               </div>
 
-              <div className="flex items-center gap-3">
-                <label className="text-sm font-medium text-text-secondary">
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-medium text-text-secondary">
                   Funciona?
                 </label>
                 <button
@@ -693,7 +716,7 @@ export const ScheduleManagement = () => {
                       is_working: !bulkForm.is_working,
                     })
                   }
-                  className={`px-4 py-2 rounded-lg transition text-sm font-medium ${
+                  className={`px-3 py-1.5 rounded-lg transition text-xs font-medium ${
                     bulkForm.is_working
                       ? "bg-green-500/20 text-green-500 border-green-500/30 border"
                       : "bg-red-500/20 text-red-500 border-red-500/30 border"
@@ -705,129 +728,151 @@ export const ScheduleManagement = () => {
 
               {bulkForm.is_working && (
                 <>
-                  <div className="grid grid-cols-2 gap-4">
-                    <Input
-                      label="Abre às"
-                      type="time"
-                      value={bulkForm.start_time}
-                      onChange={(e) =>
-                        setBulkForm({
-                          ...bulkForm,
-                          start_time: e.target.value,
-                        })
-                      }
-                      required
-                      disabled={isBulkSubmitting}
-                    />
-                    <Input
-                      label="Fecha às"
-                      type="time"
-                      value={bulkForm.end_time}
-                      onChange={(e) =>
-                        setBulkForm({
-                          ...bulkForm,
-                          end_time: e.target.value,
-                        })
-                      }
-                      required
-                      disabled={isBulkSubmitting}
-                    />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs font-medium text-text-secondary mb-1">
+                        Abre às
+                      </label>
+                      <input
+                        type="time"
+                        value={bulkForm.start_time}
+                        onChange={(e) =>
+                          setBulkForm({
+                            ...bulkForm,
+                            start_time: e.target.value,
+                          })
+                        }
+                        className="w-full px-3 py-2 bg-primary/50 border border-border/50 rounded-lg text-sm text-text focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all disabled:opacity-50"
+                        required
+                        disabled={isBulkSubmitting}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-text-secondary mb-1">
+                        Fecha às
+                      </label>
+                      <input
+                        type="time"
+                        value={bulkForm.end_time}
+                        onChange={(e) =>
+                          setBulkForm({
+                            ...bulkForm,
+                            end_time: e.target.value,
+                          })
+                        }
+                        className="w-full px-3 py-2 bg-primary/50 border border-border/50 rounded-lg text-sm text-text focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all disabled:opacity-50"
+                        required
+                        disabled={isBulkSubmitting}
+                      />
+                    </div>
                   </div>
 
-                  <Input
-                    label="Duração do Slot (minutos)"
-                    type="number"
-                    placeholder="30"
-                    value={bulkForm.slot_duration}
-                    onChange={(e) =>
-                      setBulkForm({
-                        ...bulkForm,
-                        slot_duration: parseInt(e.target.value) || 30,
-                      })
-                    }
-                    required
-                    disabled={isBulkSubmitting}
-                    helperText="Tempo de cada agendamento"
-                  />
+                  <div>
+                    <label className="block text-xs font-medium text-text-secondary mb-1">
+                      Duração do Slot (min)
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="30"
+                      value={bulkForm.slot_duration}
+                      onChange={(e) =>
+                        setBulkForm({
+                          ...bulkForm,
+                          slot_duration: parseInt(e.target.value) || 30,
+                        })
+                      }
+                      className="w-full px-3 py-2 bg-primary/50 border border-border/50 rounded-lg text-sm text-text focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all disabled:opacity-50"
+                      required
+                      disabled={isBulkSubmitting}
+                    />
+                    <p className="text-text-muted text-[10px] mt-0.5">
+                      Tempo de cada agendamento
+                    </p>
+                  </div>
                 </>
               )}
 
-              <div className="flex gap-3 pt-2">
-                <button
+              <div className="flex flex-col-reverse sm:flex-row gap-2 pt-1">
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="sm"
+                  fullWidth
                   onClick={() => setShowBulkModal(false)}
-                  className="flex-1 px-4 py-2 text-text-secondary hover:text-text transition border border-border rounded-lg hover:border-border-light"
                   disabled={isBulkSubmitting}
                 >
                   Cancelar
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
-                  disabled={
-                    isBulkSubmitting || bulkForm.selectedDays.length === 0
-                  }
-                  className="flex-1 btn-primary flex items-center justify-center gap-2"
+                  variant="primary"
+                  size="sm"
+                  fullWidth
+                  icon={<CheckCircleIcon size={16} />}
+                  loading={isBulkSubmitting}
+                  disabled={bulkForm.selectedDays.length === 0}
                 >
-                  {isBulkSubmitting ? (
-                    <>
-                      <Spinner color="#1A1A1A" size={10} />
-                      <span>Salvando...</span>
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircleIcon size={18} />
-                      <span>Salvar {bulkForm.selectedDays.length} dia(s)</span>
-                    </>
-                  )}
-                </button>
+                  Salvar {bulkForm.selectedDays.length} dia(s)
+                </Button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Modal de Data Bloqueada */}
+      {/* ✅ Modal de Data Bloqueada - Compacto */}
       {showBlockModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-primary-light rounded-2xl max-w-md w-full p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-serif text-xl font-bold text-text">
+        <div className="fixed inset-0 bg-black/80 flex items-end sm:items-center justify-center z-50 p-4">
+          <div className="bg-primary-light rounded-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto animate-slideUp">
+            <div className="sticky top-0 bg-primary-light border-b border-border/50 p-3 flex justify-between items-center z-10">
+              <h3 className="font-serif text-base font-bold text-text">
                 Bloquear Data
               </h3>
               <button
                 onClick={() => setShowBlockModal(false)}
-                className="text-text-muted hover:text-text transition"
+                className="p-1.5 text-text-muted hover:text-text transition rounded-lg hover:bg-primary"
                 disabled={isBlockSubmitting}
               >
-                <XIcon size={24} />
+                <XIcon size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveBlock} className="space-y-4">
-              <Input
-                label="Data"
-                type="date"
-                value={blockForm.blocked_date}
-                onChange={(e) =>
-                  setBlockForm({ ...blockForm, blocked_date: e.target.value })
-                }
-                required
-                disabled={isBlockSubmitting}
-                min={new Date().toISOString().split("T")[0]}
-              />
+            <form onSubmit={handleSaveBlock} className="p-4 space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-text-secondary mb-1">
+                  Data
+                </label>
+                <input
+                  type="date"
+                  value={blockForm.blocked_date}
+                  onChange={(e) =>
+                    setBlockForm({ ...blockForm, blocked_date: e.target.value })
+                  }
+                  className="w-full px-3 py-2 bg-primary/50 border border-border/50 rounded-lg text-sm text-text focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all disabled:opacity-50"
+                  required
+                  disabled={isBlockSubmitting}
+                  min={new Date().toISOString().split("T")[0]}
+                />
+              </div>
 
-              <Input
-                label="Motivo"
-                placeholder="Ex: Feriado, Férias, Folga"
-                value={blockForm.reason}
-                onChange={(e) =>
-                  setBlockForm({ ...blockForm, reason: e.target.value })
-                }
-                disabled={isBlockSubmitting}
-              />
+              <div>
+                <label className="block text-xs font-medium text-text-secondary mb-1">
+                  Motivo
+                </label>
+                <input
+                  type="text"
+                  placeholder="Feriado, Férias, Folga..."
+                  value={blockForm.reason}
+                  onChange={(e) =>
+                    setBlockForm({ ...blockForm, reason: e.target.value })
+                  }
+                  className="w-full px-3 py-2 bg-primary/50 border border-border/50 rounded-lg text-sm text-text focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all disabled:opacity-50"
+                  disabled={isBlockSubmitting}
+                />
+              </div>
 
-              <div className="flex items-center gap-3">
-                <label className="text-sm font-medium text-text-secondary">
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-medium text-text-secondary">
                   Dia inteiro?
                 </label>
                 <button
@@ -838,48 +883,43 @@ export const ScheduleManagement = () => {
                       is_full_day: !blockForm.is_full_day,
                     })
                   }
-                  className={`px-4 py-2 rounded-lg transition text-sm font-medium ${
+                  className={`px-3 py-1.5 rounded-lg transition text-xs font-medium ${
                     blockForm.is_full_day
                       ? "bg-accent/20 text-accent border-accent/30 border"
-                      : "bg-primary border border-border text-text-secondary"
+                      : "bg-primary border border-border/50 text-text-secondary"
                   }`}
                 >
                   {blockForm.is_full_day ? "Sim" : "Não"}
                 </button>
               </div>
 
-              <div className="flex gap-3 pt-2">
-                <button
+              <div className="flex flex-col-reverse sm:flex-row gap-2 pt-1">
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="sm"
+                  fullWidth
                   onClick={() => setShowBlockModal(false)}
-                  className="flex-1 px-4 py-2 text-text-secondary hover:text-text transition border border-border rounded-lg hover:border-border-light"
                   disabled={isBlockSubmitting}
                 >
                   Cancelar
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
-                  disabled={isBlockSubmitting}
-                  className="flex-1 btn-primary flex items-center justify-center gap-2"
+                  variant="danger"
+                  size="sm"
+                  fullWidth
+                  icon={<XCircleIcon size={16} />}
+                  loading={isBlockSubmitting}
                 >
-                  {isBlockSubmitting ? (
-                    <>
-                      <Spinner color="#1A1A1A" size={10} />
-                      <span>Bloqueando...</span>
-                    </>
-                  ) : (
-                    <>
-                      <XCircleIcon size={18} />
-                      <span>Bloquear</span>
-                    </>
-                  )}
-                </button>
+                  Bloquear
+                </Button>
               </div>
             </form>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 

@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // src/components/Auth/RegisterForm.tsx
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -8,7 +8,6 @@ import {
   EnvelopeIcon,
   LockIcon,
   PhoneIcon,
-  ArrowLeftIcon,
   UserPlusIcon,
 } from "@phosphor-icons/react";
 import { Spinner } from "../Common/Spinner";
@@ -34,7 +33,6 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
     password: "",
     phone: "",
   });
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -64,121 +62,124 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto">
-      {/* Cabeçalho */}
-      <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-accent/20">
-          <UserPlusIcon size={28} className="text-accent" weight="bold" />
-        </div>
-        <h2 className="font-serif text-2xl font-bold text-text">Criar Conta</h2>
-        <p className="text-text-muted text-sm mt-1">
-          Registre sua barbearia pela primeira vez
-        </p>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Nome */}
+    <form onSubmit={handleSubmit} className="space-y-3">
+      {/* ✅ Campos com fundo estilizado - Compacto */}
+      <div className="bg-primary-light/50 rounded-xl p-0.5">
         <Input
           label="Nome Completo"
           type="text"
           name="name"
           placeholder="Carlos Silva"
-          icon={<UserIcon size={20} />}
+          icon={<UserIcon size={18} />}
           iconPosition="left"
           value={formData.name}
           onChange={handleChange}
           required
           disabled={loading}
           autoComplete="name"
+          className="bg-transparent border-0 focus:ring-0 text-sm"
+          labelClassName="text-xs"
+          containerClassName="[&_input]:py-2.5 [&_input]:px-3 [&_input]:pl-10"
         />
+      </div>
 
-        {/* Email */}
+      <div className="bg-primary-light/50 rounded-xl p-0.5">
         <Input
           label="Email"
           type="email"
           name="email"
           placeholder="carlos@barbearia.com"
-          icon={<EnvelopeIcon size={20} />}
+          icon={<EnvelopeIcon size={18} />}
           iconPosition="left"
           value={formData.email}
           onChange={handleChange}
           required
           disabled={loading}
           autoComplete="email"
+          className="bg-transparent border-0 focus:ring-0 text-sm"
+          labelClassName="text-xs"
+          containerClassName="[&_input]:py-2.5 [&_input]:px-3 [&_input]:pl-10"
         />
+      </div>
 
-        {/* Senha */}
-        <div>
-          <Input
-            label="Senha"
-            type="password"
-            name="password"
-            placeholder="********"
-            icon={<LockIcon size={20} />}
-            iconPosition="left"
-            value={formData.password}
-            onChange={handleChange}
-            required
-            disabled={loading}
-            autoComplete="new-password"
-            minLength={6}
-            helperText="Mínimo de 6 caracteres"
-          />
-        </div>
+      <div className="bg-primary-light/50 rounded-xl p-0.5">
+        <Input
+          label="Senha"
+          type="password"
+          name="password"
+          placeholder="********"
+          icon={<LockIcon size={18} />}
+          iconPosition="left"
+          value={formData.password}
+          onChange={handleChange}
+          required
+          disabled={loading}
+          autoComplete="new-password"
+          minLength={6}
+          helperText="Mínimo de 6 caracteres"
+          className="bg-transparent border-0 focus:ring-0 text-sm"
+          labelClassName="text-xs"
+          containerClassName="[&_input]:py-2.5 [&_input]:px-3 [&_input]:pl-10"
+        />
+      </div>
 
-        {/* Telefone */}
+      <div className="bg-primary-light/50 rounded-xl p-0.5">
         <Input
           label="Telefone"
           type="tel"
           name="phone"
-          placeholder="+5511999999999"
-          icon={<PhoneIcon size={20} />}
+          placeholder="+55 (11) 99999-9999"
+          icon={<PhoneIcon size={18} />}
           iconPosition="left"
           value={formData.phone}
           onChange={handleChange}
           required
           disabled={loading}
           autoComplete="tel"
-          helperText="Formato: +55 (DDD) 99999-9999"
+          helperText="Ex: +55 (11) 99999-9999"
+          className="bg-transparent border-0 focus:ring-0 text-sm"
+          labelClassName="text-xs"
+          containerClassName="[&_input]:py-2.5 [&_input]:px-3 [&_input]:pl-10"
         />
-
-        {/* Mensagem de erro */}
-        {error && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
-            <p className="text-red-400 text-sm text-center">{error}</p>
-          </div>
-        )}
-
-        {/* Botão */}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full flex items-center justify-center gap-2 py-3 text-base bg-accent text-primary-dark font-semibold rounded-lg hover:bg-accent-hover transition-all duration-300 shadow-gold hover:shadow-gold-lg disabled:opacity-70 disabled:cursor-not-allowed"
-        >
-          {loading ? (
-            <>
-              <Spinner color="#1A1A1A" size={10} />
-              <span>Registrando...</span>
-            </>
-          ) : (
-            <>
-              <UserPlusIcon size={20} />
-              <span>Criar Conta</span>
-            </>
-          )}
-        </button>
-      </form>
-
-      {/* Link para login */}
-      <div className="mt-6 text-center">
-        <Link
-          to="/login"
-          className="inline-flex items-center gap-2 text-text-muted hover:text-accent transition text-sm group"
-        >
-          <ArrowLeftIcon size={16} className="group-hover:text-accent" />
-          <span>Já tem conta? Faça login</span>
-        </Link>
       </div>
-    </div>
+
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-2.5">
+          <p className="text-red-400 text-xs text-center">{error}</p>
+        </div>
+      )}
+
+      {/* ✅ Botão de submit - Compacto */}
+      <button
+        type="submit"
+        disabled={loading}
+        className="btn-primary w-full flex items-center justify-center gap-2 py-3 text-sm rounded-xl font-semibold disabled:opacity-70 disabled:cursor-not-allowed"
+      >
+        {loading ? (
+          <>
+            <Spinner color="#1A1A1A" size={8} />
+            <span>Registrando...</span>
+          </>
+        ) : (
+          <>
+            <UserPlusIcon size={18} />
+            <span>Criar Conta</span>
+          </>
+        )}
+      </button>
+
+      {/* ✅ Link para login - Compacto */}
+      <div className="text-center">
+        <p className="text-text-muted text-xs">
+          Já tem uma conta?{" "}
+          <Link
+            to="/login"
+            className="text-accent hover:text-accent-light transition font-medium inline-flex items-center gap-1"
+          >
+            <span>Faça login</span>
+          </Link>
+        </p>
+      </div>
+    </form>
   );
 };

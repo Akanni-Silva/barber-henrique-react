@@ -1,5 +1,16 @@
 // src/types/index.ts
 
+import {
+  DotsThreeIcon,
+  GitlabLogoSimpleIcon,
+  HairDryerIcon,
+  HandIcon,
+  PackageIcon,
+  PaintBrushHouseholdIcon,
+  PaletteIcon,
+  ScissorsIcon,
+} from "@phosphor-icons/react";
+
 // ========================================
 // 📦 MODELOS DE AUTENTICAÇÃO
 // ========================================
@@ -75,13 +86,26 @@ export interface UpdateClientData {
 // 📦 MODELOS DE PRODUTOS/SERVIÇOS
 // ========================================
 
+// ========================================
+// 📦 MODELOS DE PRODUTOS/SERVIÇOS
+// ========================================
+
+export type ProductCategory =
+  | "corte"
+  | "barba"
+  | "coloracao"
+  | "tratamento"
+  | "estilizacao"
+  | "pacote"
+  | "outros";
+
 export interface Product {
   id: number;
   name: string;
   price: number;
   duration_minutes: number;
   description?: string | null;
-  category?: string | null;
+  category: ProductCategory;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -91,16 +115,67 @@ export interface CreateProductData {
   name: string;
   price: number;
   duration_minutes: number;
-  category?: string;
+  description?: string;
+  category?: ProductCategory;
 }
 
 export interface UpdateProductData {
   name?: string;
   price?: number;
   duration_minutes?: number;
-  category?: string;
+  description?: string;
+  category?: ProductCategory;
   is_active?: boolean;
 }
+
+// ========================================
+// 📦 MAPEAMENTO DE CATEGORIAS PARA EXIBIÇÃO
+// ========================================
+
+export const categoryLabels: Record<ProductCategory, string> = {
+  corte: "Corte",
+  barba: "Barba",
+  coloracao: "Coloração",
+  tratamento: "Tratamento",
+  estilizacao: "Estilização",
+  pacote: "Pacote",
+  outros: "Outros",
+};
+
+// ✅ Mapeamento de categoria para ícone (apenas frontend)
+export const categoryIconMap: Record<ProductCategory, string> = {
+  corte: "✂️", // Scissors
+  barba: "🪒", // Razor
+  coloracao: "🎨", // Palette
+  tratamento: "💆", // Treatment
+  estilizacao: "🖌️", // Brush
+  pacote: "📦", // Package
+  outros: "📌", // Other
+};
+
+// ✅ Mapeamento para ícones do Phosphor
+export const categoryPhosphorIcon: Record<ProductCategory, string> = {
+  corte: "ScissorsIcon",
+  barba: "GitlabLogoSimpleIcon",
+  coloracao: "PaintBrushHouseholdIcon",
+  tratamento: "HandIcon",
+  estilizacao: "HairDryerIcon",
+  pacote: "PackageIcon",
+  outros: "DotsThreeIcon",
+};
+
+export const phosphorIcons = {
+  PaintBrushHouseholdIcon,
+  ScissorsIcon,
+  GitlabLogoSimpleIcon,
+  PaletteIcon,
+  HandIcon,
+  HairDryerIcon,
+  PackageIcon,
+  DotsThreeIcon,
+} as const;
+
+export type PhosphorIconName = keyof typeof phosphorIcons;
 
 // ========================================
 // 📦 MODELOS DE AGENDAMENTOS
@@ -257,6 +332,30 @@ export interface ClientStats {
   average_appointments_per_client: number;
   most_frequent_client?: Client;
   top_spender?: Client;
+}
+
+export interface TemporalStatus {
+  label: string;
+  className: string;
+  icon?: string;
+  priority: number;
+  isPast: boolean;
+  isLate: boolean;
+  isUpcoming: boolean;
+  minutesDiff: number;
+}
+
+// ========================================
+// 📦 MODELOS DO MODAL DE REAGENDAMENTO
+// ========================================
+
+export interface RescheduleModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (newDate: string, newTime: string) => Promise<void>;
+  appointment: Appointment | null;
+  services?: Product[];
+  isLoading?: boolean;
 }
 
 // ========================================

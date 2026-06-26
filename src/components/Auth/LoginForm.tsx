@@ -1,6 +1,6 @@
+// src/components/Auth/LoginForm.tsx
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/components/Auth/LoginForm.tsx
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
@@ -53,23 +53,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   };
 
   return (
-    <div className="w-full max-w-md mx-auto">
-      {/* Cabeçalho */}
-      <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-accent/20">
-          <SignInIcon size={28} className="text-accent" weight="bold" />
-        </div>
-        <h2 className="font-serif text-2xl font-bold text-text">
-          Área do Barbeiro
-        </h2>
-        <p className="text-text-muted text-sm mt-1">
-          Acesse sua conta para gerenciar a barbearia
-        </p>
-      </div>
-
-      {/* Formulário */}
-      <form onSubmit={handleSubmit} className="space-y-5">
-        {/* ✅ Email com componente Input */}
+    <form onSubmit={handleSubmit} className="space-y-5">
+      {/* ✅ Formulário com Cards */}
+      <div className="bg-primary-light/50 rounded-2xl p-1">
         <Input
           id="email"
           label="Email"
@@ -83,9 +69,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           disabled={loading}
           required
           autoComplete="email"
+          className="bg-transparent border-0 focus:ring-0"
         />
+      </div>
 
-        {/* ✅ Senha com componente Input */}
+      <div className="bg-primary-light/50 rounded-2xl p-1">
         <Input
           id="password"
           label="Senha"
@@ -101,45 +89,69 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           required
           autoComplete="current-password"
           minLength={6}
+          className="bg-transparent border-0 focus:ring-0"
         />
-
-        {/* Mensagem de erro geral */}
-        {error && email && password && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
-            <p className="text-red-400 text-sm text-center">{error}</p>
-          </div>
-        )}
-
-        {/* Botão de submit */}
-        <button
-          type="submit"
-          disabled={loading}
-          className="btn-primary w-full flex items-center justify-center gap-2 py-3 text-base disabled:opacity-70 disabled:cursor-not-allowed"
-        >
-          {loading ? (
-            <>
-              <Spinner color="#1A1A1A" size={10} />
-              <span>Entrando...</span>
-            </>
-          ) : (
-            <>
-              <SignInIcon size={20} />
-              <span>Entrar</span>
-            </>
-          )}
-        </button>
-      </form>
-
-      {/* Link para registro (primeiro acesso) */}
-      <div className="mt-6 text-center">
-        <Link
-          to="/register"
-          className="inline-flex items-center gap-2 text-text-muted hover:text-accent transition text-sm group"
-        >
-          <UserPlusIcon size={16} className="group-hover:text-accent" />
-          <span>Primeiro acesso? Registre sua barbearia</span>
-        </Link>
       </div>
-    </div>
+
+      {/* ✅ Link Esqueceu a Senha */}
+      <div className="text-right">
+        <button
+          type="button"
+          className="text-text-muted text-xs hover:text-accent transition"
+        >
+          Esqueceu a senha?
+        </button>
+      </div>
+
+      {/* Mensagem de erro geral */}
+      {error && email && password && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3">
+          <p className="text-red-400 text-sm text-center">{error}</p>
+        </div>
+      )}
+
+      {/* ✅ Botão de submit estilizado */}
+      <button
+        type="submit"
+        disabled={loading}
+        className="btn-primary w-full flex items-center justify-center gap-2 py-4 text-base rounded-xl font-semibold disabled:opacity-70 disabled:cursor-not-allowed"
+      >
+        {loading ? (
+          <>
+            <Spinner color="#1A1A1A" size={10} />
+            <span>Entrando...</span>
+          </>
+        ) : (
+          <>
+            <SignInIcon size={20} />
+            <span>Entrar</span>
+          </>
+        )}
+      </button>
+
+      {/* ✅ Link para registro */}
+      <div className="mt-6 text-center">
+        <p className="text-text-muted text-sm">
+          Não tem uma conta?{" "}
+          <Link
+            to="/register"
+            className="text-accent hover:text-accent-light transition font-medium inline-flex items-center gap-1"
+          >
+            <UserPlusIcon size={16} />
+            <span>Registre sua barbearia</span>
+          </Link>
+        </p>
+      </div>
+
+      {/* ✅ Diferencial */}
+      <div className="mt-8 text-center">
+        <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent/5 rounded-full border border-accent/10">
+          <span className="text-accent text-xs">✂️</span>
+          <span className="text-text-muted text-xs">Desde 2024</span>
+          <span className="w-1 h-1 bg-text-muted rounded-full"></span>
+          <span className="text-text-muted text-xs">Premium Barber</span>
+        </div>
+      </div>
+    </form>
   );
 };

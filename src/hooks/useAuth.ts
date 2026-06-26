@@ -12,8 +12,3 @@ export const useAuth = () => {
   return context;
 };
 
-// ❌ REMOVER - Não precisamos de role
-// export const useIsBarber = () => {
-//   const { user } = useAuth();
-//   return user?.role === 'barber';
-// };

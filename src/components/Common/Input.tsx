@@ -1,6 +1,6 @@
 // src/components/Common/Input.tsx
-import React, { forwardRef, type InputHTMLAttributes } from "react";
-import { EyeIcon, EyeSlashIcon } from "@phosphor-icons/react";
+import React, { forwardRef, type InputHTMLAttributes, useState } from "react";
+import { EyeIcon, EyeSlashIcon, XIcon } from "@phosphor-icons/react";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -8,6 +8,10 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   helperText?: string;
   icon?: React.ReactNode;
   iconPosition?: "left" | "right";
+  clearable?: boolean;
+  onClear?: () => void;
+  containerClassName?: string;
+  labelClassName?: string;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
@@ -21,16 +25,39 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       type = "text",
       disabled = false,
       required = false,
+      clearable = false,
+      onClear,
+      containerClassName = "",
+      className = "",
+      value,
+      onChange,
       ...props
     },
     ref,
   ) => {
-    const [showPassword, setShowPassword] = React.useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [isFocused, setIsFocused] = useState(false);
     const isPassword = type === "password";
     const inputType = isPassword ? (showPassword ? "text" : "password") : type;
 
+    const hasValue =
+      value !== undefined && value !== null && String(value).length > 0;
+
+    const handleClear = () => {
+      if (onClear) {
+        onClear();
+      }
+      // Se não tiver onClear, podemos simular um evento de change com valor vazio
+      if (onChange) {
+        const event = {
+          target: { value: "" },
+        } as React.ChangeEvent<HTMLInputElement>;
+        onChange(event);
+      }
+    };
+
     return (
-      <div className="w-full">
+      <div className={`w-full ${containerClassName}`}>
         {label && (
           <label className="block text-sm font-medium text-text-secondary mb-1.5">
             {label}
@@ -38,10 +65,20 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           </label>
         )}
 
-        <div className="relative">
+        <div
+          className={`relative group ${isFocused ? "ring-2 ring-accent/50" : ""}`}
+        >
           {icon && iconPosition === "left" && (
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              {icon}
+              <span
+                className={`
+                transition-colors duration-200
+                ${isFocused ? "text-accent" : "text-text-muted"}
+                ${error ? "text-red-400" : ""}
+              `}
+              >
+                {icon}
+              </span>
             </div>
           )}
 
@@ -50,25 +87,50 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             type={inputType}
             disabled={disabled}
             required={required}
+            value={value}
+            onChange={onChange}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
             className={`
               w-full px-4 py-3 
-              bg-primary border rounded-lg 
+              bg-primary border rounded-xl
               text-text placeholder:text-text-muted
-              focus:outline-none focus:ring-2 focus:ring-accent/50 
+              focus:outline-none
               transition-all duration-200
               disabled:opacity-50 disabled:cursor-not-allowed
               ${icon && iconPosition === "left" ? "pl-11" : ""}
-              ${isPassword ? "pr-11" : ""}
-              ${error ? "border-red-500 focus:ring-red-500/50" : "border-border hover:border-border-light"}
+              ${isPassword || (clearable && hasValue) ? "pr-11" : ""}
+              ${
+                error
+                  ? "border-red-500 focus:ring-red-500/50"
+                  : isFocused
+                    ? "border-accent"
+                    : "border-border hover:border-border-light"
+              }
+              ${className}
             `}
             {...props}
           />
 
+          {/* ✅ Botão de limpar */}
+          {clearable && hasValue && !isPassword && !disabled && (
+            <button
+              type="button"
+              onClick={handleClear}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-text-muted hover:text-text transition"
+              aria-label="Limpar campo"
+            >
+              <XIcon size={18} />
+            </button>
+          )}
+
+          {/* ✅ Botão de mostrar senha */}
           {isPassword && (
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               className="absolute inset-y-0 right-0 pr-3 flex items-center text-text-muted hover:text-text transition"
+              aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
             >
               {showPassword ? (
                 <EyeSlashIcon size={20} />
@@ -79,7 +141,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           )}
         </div>
 
-        {error && <p className="mt-1.5 text-sm text-red-400">{error}</p>}
+        {error && (
+          <div className="mt-1.5 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 bg-red-500 rounded-full flex-shrink-0" />
+            <p className="text-sm text-red-400">{error}</p>
+          </div>
+        )}
 
         {helperText && !error && (
           <p className="mt-1.5 text-sm text-text-muted">{helperText}</p>

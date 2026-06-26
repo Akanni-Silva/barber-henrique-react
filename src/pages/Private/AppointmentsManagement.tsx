@@ -1,22 +1,27 @@
-/* eslint-disable react-hooks/refs */
 // src/pages/Private/AppointmentsManagement.tsx
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react-hooks/refs */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
   ClockIcon,
   UserIcon,
-  ScissorsIcon,
   CheckCircleIcon,
   XCircleIcon,
   FunnelIcon,
   XIcon,
   EyeIcon,
   CalendarPlusIcon,
+  ArrowLeftIcon,
+  MagnifyingGlassIcon,
 } from "@phosphor-icons/react";
 import { useApi } from "../../hooks/useApi";
 import { Spinner } from "../../components/Common/Spinner";
 import { RescheduleModal } from "../../components/Common/RescheduleModal";
+import { ServiceIcon } from "../../components/Common/ServiceIcon";
+import { Button } from "../../components/Common/Button";
 import { formatPrice } from "../../utils/formatPrice";
 import { formatDate } from "../../utils/formatDate";
 import {
@@ -24,6 +29,7 @@ import {
   canRescheduleAppointment,
 } from "../../utils/appointmentStatus";
 import type { Appointment, AppointmentFilters, Product } from "../../types";
+import { useGuestRedirect } from "../../hooks/useGuestRedirect";
 
 export const AppointmentsManagement = () => {
   const { loading, handleRequest, endpoints } = useApi();
@@ -44,17 +50,15 @@ export const AppointmentsManagement = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [services, setServices] = useState<Product[]>([]);
   const [isServicesLoading, setIsServicesLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // Estado para o modal de reagendamento
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [appointmentToReschedule, setAppointmentToReschedule] =
     useState<Appointment | null>(null);
 
-  // ✅ Ref para evitar chamadas duplicadas
   const isMounted = useRef(true);
   const fetchInProgress = useRef(false);
 
-  // ✅ Memoizar parâmetros da requisição para evitar recriação
   const requestParams = useMemo(() => {
     const params: any = { page, limit };
     if (filters.status) params.status = filters.status;
@@ -63,36 +67,39 @@ export const AppointmentsManagement = () => {
     return params;
   }, [page, limit, filters.status, filters.startDate, filters.endDate]);
 
-  // ✅ Função para ordenar agendamentos (mais recentes primeiro) - ESTÁVEL
   const sortAppointmentsByDate = useCallback((list: Appointment[]) => {
     return [...list].sort((a, b) => {
       const dateA = new Date(a.appointment_date);
       const dateB = new Date(b.appointment_date);
-
       if (dateA.getTime() !== dateB.getTime()) {
         return dateB.getTime() - dateA.getTime();
       }
-
       return b.appointment_time.localeCompare(a.appointment_time);
     });
   }, []);
 
-  // ✅ Buscar agendamentos usando handleRequest - SEM isLoading nas dependências
+  const filteredAppointments = useMemo(() => {
+    if (!searchTerm.trim()) return appointments;
+    const term = searchTerm.toLowerCase().trim();
+    return appointments.filter(
+      (app) =>
+        app.client?.name?.toLowerCase().includes(term) ||
+        app.client?.phone?.includes(term) ||
+        app.service?.name?.toLowerCase().includes(term),
+    );
+  }, [appointments, searchTerm]);
+
   const fetchAppointments = useCallback(async () => {
-    // Evitar chamadas concorrentes
     if (fetchInProgress.current) return;
     fetchInProgress.current = true;
-
     setIsLoading(true);
     try {
       const data = await handleRequest(
         endpoints.appointments.findAll(requestParams),
       );
-
       const sortedAppointments = sortAppointmentsByDate(
         data?.appointments || [],
       );
-
       setAppointments(sortedAppointments);
       setTotal(data?.total || 0);
     } catch (error) {
@@ -106,19 +113,15 @@ export const AppointmentsManagement = () => {
     endpoints.appointments,
     requestParams,
     sortAppointmentsByDate,
-    // ✅ REMOVIDO: isLoading - não pode ser dependência
   ]);
 
-  // ✅ Buscar serviços com fallback silencioso - ESTÁVEL
   const fetchServices = useCallback(async () => {
     setIsServicesLoading(true);
     try {
       let data = await handleRequest(endpoints.products.findActive());
-
       if (!data || (Array.isArray(data) && data.length === 0)) {
         data = await handleRequest(endpoints.products.findAll());
       }
-
       setServices(data || []);
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -130,7 +133,13 @@ export const AppointmentsManagement = () => {
     }
   }, [handleRequest, endpoints.products]);
 
-  // ✅ useEffect para carregar dados iniciais - UMA VEZ
+  useGuestRedirect({
+    redirectTo: "/",
+    toastMessage: "Página restrita, faça login para acessar",
+    showToast: true,
+    toastDelay: 300,
+  });
+
   useEffect(() => {
     if (isMounted.current) {
       fetchAppointments();
@@ -139,9 +148,7 @@ export const AppointmentsManagement = () => {
     }
   }, [fetchAppointments, fetchServices]);
 
-  // ✅ useEffect para recarregar quando página ou filtros mudarem
   useEffect(() => {
-    // Só recarregar se não for a primeira montagem
     if (!isMounted.current) {
       fetchAppointments();
     }
@@ -153,22 +160,17 @@ export const AppointmentsManagement = () => {
   };
 
   const clearFilters = () => {
-    setFilters({
-      status: "",
-      startDate: "",
-      endDate: "",
-    });
+    setFilters({ status: "", startDate: "", endDate: "" });
     setPage(1);
     setShowFilters(false);
+    setSearchTerm("");
   };
 
-  // ✅ Função para reagendar
   const handleReschedule = async (newDate: string, newTime: string) => {
     if (!appointmentToReschedule) {
       toast.error("Agendamento não encontrado");
       return;
     }
-
     try {
       await handleRequest(
         endpoints.appointments.reschedule(appointmentToReschedule.id, {
@@ -176,7 +178,7 @@ export const AppointmentsManagement = () => {
           appointment_time: newTime,
         }),
       );
-      toast.success("📅 Agendamento reagendado com sucesso!");
+      toast.success("Agendamento reagendado com sucesso!");
       await fetchAppointments();
       setShowRescheduleModal(false);
       setAppointmentToReschedule(null);
@@ -184,96 +186,86 @@ export const AppointmentsManagement = () => {
       console.error("Erro ao reagendar:", error);
       const message =
         error.response?.data?.message || "Erro ao reagendar agendamento";
-      toast.error(`❌ ${message}`);
+      toast.error(`${message}`);
     }
   };
 
-  // Função para abrir modal de reagendamento
   const openRescheduleModal = (appointment: Appointment) => {
     setAppointmentToReschedule(appointment);
     setShowRescheduleModal(true);
   };
 
-  // ✅ Confirmar agendamento
   const handleConfirm = async (id: number, appointment: Appointment) => {
     const temporalStatus = getTemporalStatus(
       appointment.appointment_date,
       appointment.appointment_time,
     );
-
     if (temporalStatus.isPast || temporalStatus.isLate) {
       toast.warning(
-        "⚠️ Este agendamento está atrasado ou já passou. Considere reagendar ou cancelar.",
+        "Este agendamento está atrasado ou já passou. Considere reagendar ou cancelar.",
       );
       return;
     }
-
     try {
       await handleRequest(endpoints.appointments.confirm(id));
-      toast.success("✅ Agendamento confirmado!");
+      toast.success("Agendamento confirmado!");
       await fetchAppointments();
     } catch (error: any) {
       const message =
         error.response?.data?.message || "Erro ao confirmar agendamento";
-      toast.error(`❌ ${message}`);
+      toast.error(`${message}`);
     }
   };
 
-  // ✅ Finalizar agendamento
   const handleComplete = async (id: number, appointment: Appointment) => {
     const temporalStatus = getTemporalStatus(
       appointment.appointment_date,
       appointment.appointment_time,
     );
-
     if (
       !temporalStatus.isPast &&
       !temporalStatus.isLate &&
       !temporalStatus.label.includes("Em andamento")
     ) {
       toast.warning(
-        "⚠️ Este agendamento ainda não começou. Aguarde o horário para finalizar.",
+        "Este agendamento ainda não começou. Aguarde o horário para finalizar.",
       );
       return;
     }
-
     try {
       await handleRequest(endpoints.appointments.complete(id));
-      toast.success("✅ Atendimento finalizado!");
+      toast.success("Atendimento finalizado!");
       await fetchAppointments();
     } catch (error: any) {
       const message =
         error.response?.data?.message || "Erro ao finalizar atendimento";
-      toast.error(`❌ ${message}`);
+      toast.error(`${message}`);
     }
   };
 
-  // ✅ Cancelar agendamento
   const handleCancel = async (id: number) => {
     try {
       await handleRequest(
         endpoints.appointments.cancel(id, "Cancelado pelo barbeiro"),
       );
-      toast.info("❌ Agendamento cancelado!");
+      toast.info("Agendamento cancelado!");
       await fetchAppointments();
     } catch (error: any) {
       const message =
         error.response?.data?.message || "Erro ao cancelar agendamento";
-      toast.error(`❌ ${message}`);
+      toast.error(`${message}`);
     }
   };
 
-  // ✅ Deletar agendamento
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleDelete = async (id: number) => {
     try {
       await handleRequest(endpoints.appointments.delete(id));
-      toast.success("🗑️ Agendamento removido!");
+      toast.success("Agendamento removido!");
       await fetchAppointments();
     } catch (error: any) {
       const message =
         error.response?.data?.message || "Erro ao deletar agendamento";
-      toast.error(`❌ ${message}`);
+      toast.error(`${message}`);
     }
   };
 
@@ -302,16 +294,13 @@ export const AppointmentsManagement = () => {
     return statusMap[status] || statusMap.pending;
   };
 
-  // ✅ Função para obter ações disponíveis baseadas no status temporal
   const getAvailableActions = (appointment: Appointment) => {
     const temporalStatus = getTemporalStatus(
       appointment.appointment_date,
       appointment.appointment_time,
     );
-
     const actions = [];
 
-    // Confirmar (apenas se não estiver atrasado/passado)
     if (
       appointment.status === "pending" &&
       !temporalStatus.isPast &&
@@ -326,7 +315,6 @@ export const AppointmentsManagement = () => {
       });
     }
 
-    // Finalizar (apenas se estiver em andamento, atrasado ou passado)
     if (
       appointment.status === "confirmed" &&
       (temporalStatus.isPast ||
@@ -342,7 +330,6 @@ export const AppointmentsManagement = () => {
       });
     }
 
-    // Reagendar (disponível para atrasados/passados ou sempre para pending/confirmed)
     if (
       appointment.status === "pending" ||
       appointment.status === "confirmed" ||
@@ -357,7 +344,6 @@ export const AppointmentsManagement = () => {
       });
     }
 
-    // Cancelar (sempre disponível)
     actions.push({
       key: "cancel",
       label: "Cancelar",
@@ -372,49 +358,75 @@ export const AppointmentsManagement = () => {
   if (loading || isLoading) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center">
-        <Spinner color="#C9A84C" size={20} />
-        <p className="text-text-muted mt-4 text-sm">
-          Carregando agendamentos...
-        </p>
+        <Spinner color="#C9A84C" size={20} text="Carregando agendamentos..." />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <>
+      {/* ✅ Header com navegação */}
+      <div className="flex items-center gap-3 mb-6">
+        <Link
+          to="/dashboard"
+          className="p-2 text-text-muted hover:text-accent transition rounded-xl hover:bg-accent/5"
+        >
+          <ArrowLeftIcon size={20} />
+        </Link>
         <div>
           <h1 className="font-serif text-2xl font-bold text-text">
-            Gerenciar Agendamentos
+            📋 Agendamentos
           </h1>
           <p className="text-text-muted text-sm">
             {total} agendamentos encontrados
           </p>
         </div>
+      </div>
+
+      {/* ✅ Barra de busca e filtros */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <div className="flex-1 relative">
+          <MagnifyingGlassIcon
+            size={20}
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted"
+          />
+          <input
+            type="text"
+            placeholder="Buscar por cliente ou serviço..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-11 pr-4 py-3 bg-primary-light border border-border/50 rounded-xl text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all"
+          />
+        </div>
         <div className="flex gap-2">
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="btn-secondary inline-flex items-center gap-2 text-sm py-2 px-4"
+            className={`px-4 py-3 rounded-xl border transition flex items-center gap-2 ${
+              showFilters
+                ? "border-accent bg-accent/10 text-accent"
+                : "border-border/50 text-text-muted hover:border-accent/30"
+            }`}
           >
             <FunnelIcon size={18} />
-            Filtros
+            <span className="hidden sm:inline">Filtros</span>
           </button>
-          {(filters.status || filters.startDate || filters.endDate) && (
+          {(filters.status ||
+            filters.startDate ||
+            filters.endDate ||
+            searchTerm) && (
             <button
               onClick={clearFilters}
-              className="p-2 text-text-muted hover:text-accent transition border border-border rounded-lg hover:border-accent/50"
-              title="Limpar filtros"
+              className="px-4 py-3 rounded-xl border border-border/50 text-text-muted hover:text-accent hover:border-accent/30 transition"
             >
-              <XIcon size={20} />
+              <XIcon size={18} />
             </button>
           )}
         </div>
       </div>
 
-      {/* Filtros */}
+      {/* ✅ Filtros expandíveis */}
       {showFilters && (
-        <div className="card-primary p-4">
+        <div className="bg-primary-light rounded-2xl p-4 mb-6 border border-border/50">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-1.5">
@@ -423,7 +435,7 @@ export const AppointmentsManagement = () => {
               <select
                 value={filters.status}
                 onChange={(e) => handleFilterChange("status", e.target.value)}
-                className="input-primary"
+                className="w-full px-4 py-3 bg-primary border border-border/50 rounded-xl text-text focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all"
               >
                 <option value="">Todos</option>
                 <option value="pending">Pendente</option>
@@ -442,7 +454,7 @@ export const AppointmentsManagement = () => {
                 onChange={(e) =>
                   handleFilterChange("startDate", e.target.value)
                 }
-                className="input-primary"
+                className="w-full px-4 py-3 bg-primary border border-border/50 rounded-xl text-text focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all"
               />
             </div>
             <div>
@@ -453,159 +465,135 @@ export const AppointmentsManagement = () => {
                 type="date"
                 value={filters.endDate}
                 onChange={(e) => handleFilterChange("endDate", e.target.value)}
-                className="input-primary"
+                className="w-full px-4 py-3 bg-primary border border-border/50 rounded-xl text-text focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all"
               />
             </div>
-          </div>
-          <div className="flex justify-end mt-4">
-            <button
-              onClick={clearFilters}
-              className="text-text-muted hover:text-accent transition text-sm"
-            >
-              Limpar filtros
-            </button>
           </div>
         </div>
       )}
 
-      {/* Tabela */}
-      {appointments.length === 0 ? (
-        <div className="text-center py-12">
-          <div className="text-6xl mb-4">📋</div>
+      {/* ✅ Lista de Agendamentos */}
+      {filteredAppointments.length === 0 ? (
+        <div className="text-center py-16 bg-primary-light rounded-2xl border border-border/50">
+          <div className="text-6xl mb-4">📭</div>
           <h3 className="font-serif text-xl font-bold text-text mb-2">
             Nenhum agendamento encontrado
           </h3>
           <p className="text-text-muted">
-            {filters.status || filters.startDate || filters.endDate
-              ? "Tente ajustar os filtros"
+            {filters.status ||
+            filters.startDate ||
+            filters.endDate ||
+            searchTerm
+              ? "Tente ajustar os filtros ou a busca"
               : "Ainda não há agendamentos realizados"}
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="text-left py-3 px-3 text-text-muted text-sm font-medium">
-                  Cliente
-                </th>
-                <th className="text-left py-3 px-3 text-text-muted text-sm font-medium hidden sm:table-cell">
-                  Serviço
-                </th>
-                <th className="text-left py-3 px-3 text-text-muted text-sm font-medium">
-                  Data/Hora
-                </th>
-                <th className="text-left py-3 px-3 text-text-muted text-sm font-medium hidden md:table-cell">
-                  Status
-                </th>
-                <th className="text-left py-3 px-3 text-text-muted text-sm font-medium hidden lg:table-cell">
-                  Temporal
-                </th>
-                <th className="text-right py-3 px-3 text-text-muted text-sm font-medium">
-                  Ações
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {appointments.map((appointment) => {
-                const status = getStatusBadge(appointment.status);
-                const temporalStatus = getTemporalStatus(
-                  appointment.appointment_date,
-                  appointment.appointment_time,
-                );
-                const actions = getAvailableActions(appointment);
+        <div className="space-y-3">
+          {filteredAppointments.map((appointment) => {
+            const status = getStatusBadge(appointment.status);
+            const temporalStatus = getTemporalStatus(
+              appointment.appointment_date,
+              appointment.appointment_time,
+            );
+            const actions = getAvailableActions(appointment);
 
-                return (
-                  <tr
-                    key={appointment.id}
-                    className={`border-b border-border/50 hover:bg-primary-light/50 transition ${
-                      temporalStatus.isLate
-                        ? "bg-red-500/5"
-                        : temporalStatus.label.includes("Começa em")
-                          ? "bg-green-500/5"
-                          : ""
-                    }`}
-                  >
-                    <td className="py-3 px-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-accent/10 rounded-full flex items-center justify-center">
-                          <UserIcon size={16} className="text-accent" />
-                        </div>
-                        <div>
-                          <p className="text-text font-medium text-sm">
-                            {appointment.client?.name || "Cliente"}
-                          </p>
-                          <p className="text-text-muted text-xs">
-                            {appointment.client?.phone || ""}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-3 hidden sm:table-cell">
-                      <div className="flex items-center gap-2">
-                        <ScissorsIcon size={16} className="text-text-muted" />
-                        <span className="text-text text-sm">
-                          {appointment.service?.name || "Serviço"}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-3">
-                      <div className="flex flex-col">
-                        <span className="text-text text-sm">
-                          {formatDate(appointment.appointment_date)}
-                        </span>
-                        <span className="text-text-muted text-xs flex items-center gap-1">
-                          <ClockIcon size={12} />
-                          {appointment.appointment_time}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-3 hidden md:table-cell">
-                      <span className={status.className}>{status.label}</span>
-                    </td>
-                    <td className="py-3 px-3 hidden lg:table-cell">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium border ${temporalStatus.className}`}
+            return (
+              <div
+                key={appointment.id}
+                className={`bg-primary-light rounded-2xl p-4 border transition-all hover:border-accent/20 ${
+                  temporalStatus.isLate
+                    ? "border-red-500/30 bg-red-500/5"
+                    : temporalStatus.label.includes("Começa em")
+                      ? "border-green-500/30 bg-green-500/5"
+                      : "border-border/50"
+                }`}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  {/* Cliente */}
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <UserIcon size={18} className="text-accent" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-text truncate">
+                        {appointment.client?.name || "Cliente"}
+                      </p>
+                      <p className="text-text-muted text-xs truncate">
+                        {appointment.client?.phone || ""}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Serviço */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {appointment.service?.category ? (
+                      <ServiceIcon
+                        category={appointment.service.category}
+                        size={16}
+                        className="text-text-muted"
+                      />
+                    ) : (
+                      <span className="text-xs">✂️</span>
+                    )}
+                    <span className="text-text text-sm truncate max-w-[120px]">
+                      {appointment.service?.name || "Serviço"}
+                    </span>
+                  </div>
+
+                  {/* Data/Hora */}
+                  <div className="flex items-center gap-3 text-sm flex-shrink-0">
+                    <span className="text-text whitespace-nowrap">
+                      {formatDate(appointment.appointment_date)}
+                    </span>
+                    <span className="text-text-muted text-xs flex items-center gap-1 whitespace-nowrap">
+                      <ClockIcon size={12} />
+                      {appointment.appointment_time}
+                    </span>
+                  </div>
+
+                  {/* Badges e Ações */}
+                  <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
+                    <span className={status.className}>{status.label}</span>
+                    <span
+                      className={`px-2 py-1 rounded-full text-[10px] font-medium border ${temporalStatus.className}`}
+                    >
+                      {temporalStatus.label}
+                    </span>
+
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => {
+                          setSelectedAppointment(appointment);
+                          setShowDetails(true);
+                        }}
+                        className="p-1.5 bg-accent/10 text-accent rounded-lg hover:bg-accent/20 transition"
+                        title="Ver detalhes"
                       >
-                        {temporalStatus.label}
-                      </span>
-                    </td>
-                    <td className="py-3 px-3">
-                      <div className="flex justify-end gap-1 flex-wrap">
+                        <EyeIcon size={14} />
+                      </button>
+                      {actions.map((action) => (
                         <button
-                          onClick={() => {
-                            setSelectedAppointment(appointment);
-                            setShowDetails(true);
-                          }}
-                          className="p-1.5 bg-accent/10 text-accent rounded-lg hover:bg-accent/20 transition"
-                          title="Ver detalhes"
+                          key={action.key}
+                          onClick={action.onClick}
+                          className={`p-1.5 rounded-lg transition ${action.className}`}
+                          title={action.label}
                         >
-                          <EyeIcon size={16} />
+                          {action.icon}
                         </button>
-
-                        {actions.map((action) => (
-                          <button
-                            key={action.key}
-                            onClick={action.onClick}
-                            className={`p-1.5 rounded-lg transition ${action.className}`}
-                            title={action.label}
-                          >
-                            {action.icon}
-                          </button>
-                        ))}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
-      {/* Paginação */}
+      {/* ✅ Paginação */}
       {total > limit && (
-        <div className="flex justify-between items-center pt-4 border-t border-border">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t border-border/50 mt-6">
           <p className="text-text-muted text-sm">
             Mostrando {(page - 1) * limit + 1} - {Math.min(page * limit, total)}{" "}
             de {total}
@@ -614,134 +602,162 @@ export const AppointmentsManagement = () => {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="px-3 py-1 border border-border rounded-lg text-text-muted hover:text-text hover:border-accent/50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 border border-border/50 rounded-xl text-text-muted hover:text-text hover:border-accent/30 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >
               Anterior
             </button>
-            <span className="px-3 py-1 bg-accent/10 text-accent rounded-lg text-sm">
+            <span className="px-4 py-2 bg-accent/10 text-accent rounded-xl text-sm font-medium">
               {page}
             </span>
             <button
               onClick={() => setPage((p) => p + 1)}
               disabled={page * limit >= total}
-              className="px-3 py-1 border border-border rounded-lg text-text-muted hover:text-text hover:border-accent/50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 border border-border/50 rounded-xl text-text-muted hover:text-text hover:border-accent/30 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >
-              Próximo
+              Próxima
             </button>
           </div>
         </div>
       )}
 
-      {/* Modal de Detalhes */}
+      {/* ✅ Modal de Detalhes */}
       {showDetails && selectedAppointment && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-primary-light rounded-2xl max-w-md w-full max-h-[80vh] overflow-y-auto p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-serif text-xl font-bold text-text">
+        <div className="fixed inset-0 bg-black/80 flex items-end sm:items-center justify-center z-50 p-4">
+          <div className="bg-primary-light rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-slideUp">
+            <div className="sticky top-0 bg-primary-light border-b border-border/50 p-4 flex justify-between items-center z-10">
+              <h3 className="font-serif text-lg font-bold text-text">
                 Detalhes do Agendamento
               </h3>
               <button
                 onClick={() => setShowDetails(false)}
-                className="text-text-muted hover:text-text transition"
+                className="p-2 text-text-muted hover:text-text transition rounded-xl hover:bg-primary"
               >
-                <XIcon size={24} />
+                <XIcon size={20} />
               </button>
             </div>
 
-            <div className="space-y-4">
-              <div>
-                <p className="text-text-muted text-sm">Cliente</p>
-                <p className="text-text font-medium">
-                  {selectedAppointment.client?.name || "Cliente"}
-                </p>
-                <p className="text-text-muted text-sm">
-                  {selectedAppointment.client?.phone || ""}
-                </p>
+            <div className="p-5 space-y-4">
+              {/* Cliente */}
+              <div className="flex items-center gap-3 p-3 bg-primary/50 rounded-xl">
+                <div className="w-12 h-12 bg-accent/10 rounded-xl flex items-center justify-center">
+                  <UserIcon size={20} className="text-accent" />
+                </div>
+                <div>
+                  <p className="font-semibold text-text">
+                    {selectedAppointment.client?.name || "Cliente"}
+                  </p>
+                  <p className="text-text-muted text-sm">
+                    {selectedAppointment.client?.phone || ""}
+                  </p>
+                </div>
               </div>
 
-              <div>
-                <p className="text-text-muted text-sm">Serviço</p>
-                <p className="text-text font-medium">
-                  {selectedAppointment.service?.name || "Serviço"}
+              {/* Serviço */}
+              <div className="p-3 bg-primary/50 rounded-xl space-y-1">
+                <p className="text-text-muted text-xs font-medium uppercase tracking-wider">
+                  Serviço
                 </p>
+                <div className="flex items-center gap-2">
+                  {selectedAppointment.service?.category ? (
+                    <ServiceIcon
+                      category={selectedAppointment.service.category}
+                      size={20}
+                      className="text-accent"
+                    />
+                  ) : (
+                    <span className="text-xl">✂️</span>
+                  )}
+                  <p className="text-text font-medium">
+                    {selectedAppointment.service?.name || "Serviço"}
+                  </p>
+                </div>
                 <p className="text-text-muted text-sm">
                   {formatPrice(Number(selectedAppointment.service?.price) || 0)}{" "}
                   • {selectedAppointment.service?.duration_minutes || 0} min
                 </p>
               </div>
 
-              <div>
-                <p className="text-text-muted text-sm">Data e Hora</p>
+              {/* Data e Hora */}
+              <div className="p-3 bg-primary/50 rounded-xl space-y-1">
+                <p className="text-text-muted text-xs font-medium uppercase tracking-wider">
+                  Data e Hora
+                </p>
                 <p className="text-text font-medium">
                   {formatDate(selectedAppointment.appointment_date)}
                 </p>
-                <p className="text-text-muted text-sm">
-                  {selectedAppointment.appointment_time}
+                <p className="text-text-muted text-sm flex items-center gap-1">
+                  <ClockIcon size={14} /> {selectedAppointment.appointment_time}
                 </p>
               </div>
 
-              <div>
-                <p className="text-text-muted text-sm">Status</p>
-                <span
-                  className={
-                    getStatusBadge(selectedAppointment.status).className
-                  }
-                >
-                  {getStatusBadge(selectedAppointment.status).label}
-                </span>
+              {/* Status */}
+              <div className="p-3 bg-primary/50 rounded-xl space-y-1">
+                <p className="text-text-muted text-xs font-medium uppercase tracking-wider">
+                  Status
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <span
+                    className={
+                      getStatusBadge(selectedAppointment.status).className
+                    }
+                  >
+                    {getStatusBadge(selectedAppointment.status).label}
+                  </span>
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-medium border ${
+                      getTemporalStatus(
+                        selectedAppointment.appointment_date,
+                        selectedAppointment.appointment_time,
+                      ).className
+                    }`}
+                  >
+                    {
+                      getTemporalStatus(
+                        selectedAppointment.appointment_date,
+                        selectedAppointment.appointment_time,
+                      ).label
+                    }
+                  </span>
+                </div>
               </div>
 
-              {/* Status temporal */}
-              <div>
-                <p className="text-text-muted text-sm">Status do Horário</p>
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-medium border inline-block mt-1 ${
-                    getTemporalStatus(
-                      selectedAppointment.appointment_date,
-                      selectedAppointment.appointment_time,
-                    ).className
-                  }`}
-                >
-                  {
-                    getTemporalStatus(
-                      selectedAppointment.appointment_date,
-                      selectedAppointment.appointment_time,
-                    ).label
-                  }
-                </span>
-              </div>
-
+              {/* Observações */}
               {selectedAppointment.notes && (
-                <div>
-                  <p className="text-text-muted text-sm">Observações</p>
-                  <p className="text-text text-sm bg-primary p-2 rounded-lg">
+                <div className="p-3 bg-primary/50 rounded-xl space-y-1">
+                  <p className="text-text-muted text-xs font-medium uppercase tracking-wider">
+                    Observações
+                  </p>
+                  <p className="text-text text-sm">
                     {selectedAppointment.notes}
                   </p>
                 </div>
               )}
 
-              <div className="flex flex-wrap gap-2 pt-4 border-t border-border">
+              {/* Ações */}
+              <div className="flex flex-wrap gap-2 pt-2">
                 {getAvailableActions(selectedAppointment).map((action) => (
-                  <button
+                  <Button
                     key={action.key}
+                    variant="primary"
+                    size="sm"
+                    icon={action.icon}
                     onClick={() => {
                       action.onClick();
                       if (action.key !== "reschedule") {
                         setShowDetails(false);
                       }
                     }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition text-sm ${action.className}`}
                   >
-                    {action.icon}
                     {action.label}
-                  </button>
+                  </Button>
                 ))}
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setShowDetails(false)}
-                  className="px-4 py-2 text-text-muted hover:text-text transition text-sm"
                 >
                   Fechar
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -761,7 +777,7 @@ export const AppointmentsManagement = () => {
         services={services}
         isLoading={isServicesLoading}
       />
-    </div>
+    </>
   );
 };
 

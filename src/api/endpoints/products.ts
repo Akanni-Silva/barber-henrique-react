@@ -40,13 +40,13 @@ export const productsEndpoint = {
 
   // Ativar (protegido)
   activate: async (id: number) => {
-    const response = await api.put(`/products/${id}/activate`);
+    const response = await api.patch(`/products/${id}/activate`);
     return response.data;
   },
 
   // Desativar (protegido)
   deactivate: async (id: number) => {
-    const response = await api.put(`/products/${id}/deactivate`);
+    const response = await api.patch(`/products/${id}/deactivate`);
     return response.data;
   },
 

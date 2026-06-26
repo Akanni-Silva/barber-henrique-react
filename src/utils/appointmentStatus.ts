@@ -1,43 +1,78 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // src/utils/appointmentStatus.ts
-import type { Appointment } from "../types";
+import type { Appointment, TemporalStatus } from "../types";
 
-export interface TemporalStatus {
-  label: string;
-  className: string;
-  icon?: string;
-  priority: number;
-  isPast: boolean;
-  isLate: boolean;
-  isUpcoming: boolean;
-  minutesDiff: number;
-}
+/**
+ * Converte uma string de data (YYYY-MM-DD) para um objeto Date
+ * sem problemas de timezone, usando a mesma lógica do formatDate
+ */
+const parseDateSafe = (dateStr: string): Date => {
+  const parts = dateStr.split("-");
+  const year = parseInt(parts[0]);
+  const month = parseInt(parts[1]) - 1;
+  const day = parseInt(parts[2]);
+  return new Date(year, month, day);
+};
+
+/**
+ * Verifica se duas datas são o mesmo dia (ignorando horário)
+ */
+const isSameDay = (date1: Date, date2: Date): boolean => {
+  return (
+    date1.getFullYear() === date2.getFullYear() &&
+    date1.getMonth() === date2.getMonth() &&
+    date1.getDate() === date2.getDate()
+  );
+};
+
+/**
+ * Verifica se uma data é futura em relação a outra (ignorando horário)
+ */
+const isDateFuture = (date1: Date, date2: Date): boolean => {
+  return (
+    date1.getFullYear() > date2.getFullYear() ||
+    (date1.getFullYear() === date2.getFullYear() &&
+      date1.getMonth() > date2.getMonth()) ||
+    (date1.getFullYear() === date2.getFullYear() &&
+      date1.getMonth() === date2.getMonth() &&
+      date1.getDate() > date2.getDate())
+  );
+};
 
 /**
  * Calcula o status temporal de um agendamento
+ * - Só classifica como "Atrasado" ou "Começa em" se for HOJE
+ * - Agendamentos futuros (outras datas) são "Futuro"
+ * - Agendamentos passados (outras datas) são "Passado"
  */
 export const getTemporalStatus = (
   appointmentDate: string,
   appointmentTime: string,
   currentTime: Date = new Date(),
 ): TemporalStatus => {
+  // ✅ Criar data do agendamento usando parseDateSafe
+  const appointmentDateObj = parseDateSafe(appointmentDate);
+
   // Extrair hora e minuto do agendamento
   const [hours, minutes] = appointmentTime.split(":").map(Number);
+  appointmentDateObj.setHours(hours, minutes, 0, 0);
 
-  // Criar objeto Date para o agendamento
-  const appointmentDateTime = new Date(appointmentDate);
-  appointmentDateTime.setHours(hours, minutes, 0, 0);
+  // ✅ Criar data de hoje (sem horário)
+  const today = new Date(currentTime);
+  today.setHours(0, 0, 0, 0);
+
+  // ✅ Verificar se é hoje usando isSameDay
+  const isToday = isSameDay(appointmentDateObj, today);
 
   // Calcular diferença em minutos
   const diffMinutes = Math.floor(
-    (appointmentDateTime.getTime() - currentTime.getTime()) / 1000 / 60,
+    (appointmentDateObj.getTime() - currentTime.getTime()) / 1000 / 60,
   );
 
-  // Verificar se o agendamento é hoje
-  const isToday = appointmentDate === currentTime.toISOString().split("T")[0];
-
-  // Se não for hoje
+  // ✅ Se não for hoje, classificar como Futuro ou Passado
   if (!isToday) {
-    const isFuture = appointmentDateTime > currentTime;
+    const isFuture = isDateFuture(appointmentDateObj, today);
+
     return {
       label: isFuture ? "📅 Futuro" : "📅 Passado",
       className: isFuture
@@ -51,7 +86,7 @@ export const getTemporalStatus = (
     };
   }
 
-  // Regras para agendamentos de hoje
+  // ✅ Se for hoje, aplicar regras de status temporal
   if (diffMinutes < -15) {
     return {
       label: "🔴 Muito Atrasado",
@@ -107,6 +142,8 @@ export const getTemporalStatus = (
 
 /**
  * Verifica se um agendamento pode ser confirmado
+ * ✅ Pode confirmar: Futuro, Começa em, Em andamento
+ * ❌ Não pode confirmar: Atrasado, Muito Atrasado, Passado
  */
 export const canConfirmAppointment = (
   temporalStatus: TemporalStatus,
@@ -116,6 +153,8 @@ export const canConfirmAppointment = (
 
 /**
  * Verifica se um agendamento pode ser finalizado
+ * ✅ Pode finalizar: Em andamento, Atrasado, Muito Atrasado, Passado
+ * ❌ Não pode finalizar: Futuro, Começa em
  */
 export const canCompleteAppointment = (
   temporalStatus: TemporalStatus,
@@ -129,6 +168,8 @@ export const canCompleteAppointment = (
 
 /**
  * Verifica se um agendamento pode ser reagendado
+ * ✅ Pode reagendar: Atrasado, Muito Atrasado, Passado
+ * ❌ Não pode reagendar: Futuro, Começa em, Em andamento
  */
 export const canRescheduleAppointment = (
   temporalStatus: TemporalStatus,
@@ -138,16 +179,16 @@ export const canRescheduleAppointment = (
 
 /**
  * Verifica se um agendamento pode ser cancelado
+ * ✅ Sempre pode cancelar
  */
 export const canCancelAppointment = (
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   temporalStatus: TemporalStatus,
 ): boolean => {
-  return true; // Sempre pode cancelar
+  return true;
 };
 
 /**
- * ✅ Ordena agendamentos por prioridade de status temporal
+ * Ordena agendamentos por prioridade de status temporal
  * (Atrasados aparecem primeiro, depois os que estão começando)
  */
 export const sortByTemporalPriority = (

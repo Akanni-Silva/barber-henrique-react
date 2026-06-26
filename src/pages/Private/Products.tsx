@@ -1,45 +1,54 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // src/pages/Private/Products.tsx
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
-  ScissorsIcon,
   PlusIcon,
   PencilIcon,
   XCircleIcon,
   CheckCircleIcon,
   XIcon,
   ClockIcon,
-  MoneyIcon,
+  ArrowLeftIcon,
 } from "@phosphor-icons/react";
 import { useApi } from "../../hooks/useApi";
 import { Spinner } from "../../components/Common/Spinner";
 import { Input } from "../../components/Common/Input";
+import { ServiceIcon } from "../../components/Common/ServiceIcon";
 import { ConfirmPopup } from "../../components/Common/ConfirmPopup";
+import { Button } from "../../components/Common/Button";
 import { formatPrice } from "../../utils/formatPrice";
-import type { Product } from "../../types";
+import type { Product, ProductCategory } from "../../types";
+import { categoryLabels } from "../../types";
+import { useGuestRedirect } from "../../hooks/useGuestRedirect";
 
 export const Products = () => {
   const { loading, handleRequest, endpoints } = useApi();
 
-  // Estados
   const [products, setProducts] = useState<Product[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Estados do Modal
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     price: "",
     duration_minutes: "",
+    category: "" as ProductCategory | "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Buscar produtos
+  useGuestRedirect({
+    redirectTo: "/",
+    toastMessage: "Página restrita, faça login para acessar",
+    showToast: true,
+    toastDelay: 300,
+  });
+
   useEffect(() => {
     const fetchProducts = async () => {
       setIsLoading(true);
@@ -63,32 +72,29 @@ export const Products = () => {
     fetchProducts();
   }, [page]);
 
-  // Abrir modal para criar
   const handleOpenCreate = () => {
     setEditingProduct(null);
-    setFormData({ name: "", price: "", duration_minutes: "" });
+    setFormData({ name: "", price: "", duration_minutes: "", category: "" });
     setShowModal(true);
   };
 
-  // Abrir modal para editar
   const handleOpenEdit = (product: Product) => {
     setEditingProduct(product);
     setFormData({
       name: product.name,
       price: product.price.toString(),
       duration_minutes: product.duration_minutes.toString(),
+      category: product.category || "",
     });
     setShowModal(true);
   };
 
-  // Fechar modal
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingProduct(null);
-    setFormData({ name: "", price: "", duration_minutes: "" });
+    setFormData({ name: "", price: "", duration_minutes: "", category: "" });
   };
 
-  // Salvar produto
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -108,31 +114,25 @@ export const Products = () => {
 
     setIsSubmitting(true);
     try {
+      const payload = {
+        name,
+        price,
+        duration_minutes,
+        category: formData.category || undefined,
+      };
+
       if (editingProduct) {
-        // Editar
         await handleRequest(
-          endpoints.products.update(editingProduct.id, {
-            name,
-            price,
-            duration_minutes,
-          }),
+          endpoints.products.update(editingProduct.id, payload),
         );
-        toast.success("✅ Serviço atualizado com sucesso!");
+        toast.success("Serviço atualizado com sucesso!");
       } else {
-        // Criar
-        await handleRequest(
-          endpoints.products.create({
-            name,
-            price,
-            duration_minutes,
-          }),
-        );
-        toast.success("✅ Serviço criado com sucesso!");
+        await handleRequest(endpoints.products.create(payload));
+        toast.success("Serviço criado com sucesso!");
       }
 
       handleCloseModal();
 
-      // Recarregar lista
       const data = await handleRequest(
         endpoints.products.findAll({ page, limit }),
       );
@@ -145,15 +145,14 @@ export const Products = () => {
     }
   };
 
-  // Ativar/Desativar produto
   const handleToggleActive = async (id: number, currentStatus: boolean) => {
     try {
       if (currentStatus) {
         await handleRequest(endpoints.products.deactivate(id));
-        toast.info("⏸️ Serviço desativado");
+        toast.info("Serviço desativado");
       } else {
         await handleRequest(endpoints.products.activate(id));
-        toast.success("✅ Serviço ativado");
+        toast.success("Serviço ativado");
       }
 
       const updated = products.map((p) =>
@@ -165,11 +164,10 @@ export const Products = () => {
     }
   };
 
-  // Deletar produto
   const handleDelete = async (id: number) => {
     try {
       await handleRequest(endpoints.products.delete(id));
-      toast.success("🗑️ Serviço removido!");
+      toast.success("Serviço removido!");
 
       const updated = products.filter((p) => p.id !== id);
       setProducts(updated);
@@ -182,16 +180,21 @@ export const Products = () => {
   if (loading || isLoading) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center">
-        <Spinner color="#C9A84C" size={20} />
-        <p className="text-text-muted mt-4 text-sm">Carregando serviços...</p>
+        <Spinner color="#C9A84C" size={20} text="Carregando serviços..." />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <>
+      {/* ✅ Header com navegação */}
+      <div className="flex items-center gap-3 mb-6">
+        <Link
+          to="/dashboard"
+          className="p-2 text-text-muted hover:text-accent transition rounded-xl hover:bg-accent/5"
+        >
+          <ArrowLeftIcon size={20} />
+        </Link>
         <div>
           <h1 className="font-serif text-2xl font-bold text-text">
             ✂️ Serviços
@@ -200,18 +203,23 @@ export const Products = () => {
             {total} serviços cadastrados
           </p>
         </div>
-        <button
-          onClick={handleOpenCreate}
-          className="btn-primary inline-flex items-center gap-2 text-sm py-2 px-4"
-        >
-          <PlusIcon size={20} />
-          Novo Serviço
-        </button>
       </div>
 
-      {/* Tabela */}
+      {/* ✅ Botão Novo Serviço */}
+      <div className="flex justify-end mb-6">
+        <Button
+          variant="primary"
+          size="md"
+          icon={<PlusIcon size={18} />}
+          onClick={handleOpenCreate}
+        >
+          Novo Serviço
+        </Button>
+      </div>
+
+      {/* ✅ Lista de Serviços */}
       {products.length === 0 ? (
-        <div className="text-center py-12">
+        <div className="text-center py-16 bg-primary-light rounded-2xl border border-border/50">
           <div className="text-6xl mb-4">✂️</div>
           <h3 className="font-serif text-xl font-bold text-text mb-2">
             Nenhum serviço cadastrado
@@ -221,121 +229,107 @@ export const Products = () => {
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="text-left py-3 px-3 text-text-muted text-sm font-medium">
-                  Serviço
-                </th>
-                <th className="text-left py-3 px-3 text-text-muted text-sm font-medium">
-                  Preço
-                </th>
-                <th className="text-left py-3 px-3 text-text-muted text-sm font-medium hidden sm:table-cell">
-                  Duração
-                </th>
-                <th className="text-left py-3 px-3 text-text-muted text-sm font-medium hidden md:table-cell">
-                  Status
-                </th>
-                <th className="text-right py-3 px-3 text-text-muted text-sm font-medium">
-                  Ações
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.map((product) => (
-                <tr
-                  key={product.id}
-                  className="border-b border-border/50 hover:bg-primary-light/50 transition"
-                >
-                  <td className="py-3 px-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-accent/10 rounded-full flex items-center justify-center">
-                        <ScissorsIcon size={16} className="text-accent" />
-                      </div>
-                      <span className="text-text font-medium text-sm">
-                        {product.name}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="py-3 px-3">
-                    <span className="text-accent font-medium text-sm">
-                      {formatPrice(product.price)}
-                    </span>
-                  </td>
-                  <td className="py-3 px-3 hidden sm:table-cell">
-                    <span className="text-text text-sm flex items-center gap-1">
-                      <ClockIcon size={14} className="text-text-muted" />
-                      {product.duration_minutes} min
-                    </span>
-                  </td>
-                  <td className="py-3 px-3 hidden md:table-cell">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        product.is_active
-                          ? "bg-green-500/10 text-green-500 border-green-500/30 border"
-                          : "bg-red-500/10 text-red-500 border-red-500/30 border"
-                      }`}
-                    >
-                      {product.is_active ? "Ativo" : "Inativo"}
-                    </span>
-                  </td>
-                  <td className="py-3 px-3">
-                    <div className="flex justify-end gap-1">
-                      <button
-                        onClick={() => handleOpenEdit(product)}
-                        className="p-1.5 bg-accent/10 text-accent rounded-lg hover:bg-accent/20 transition"
-                        title="Editar"
-                      >
-                        <PencilIcon size={16} />
-                      </button>
+        <div className="space-y-3">
+          {products.map((product) => (
+            <div
+              key={product.id}
+              className="bg-primary-light rounded-2xl p-4 border border-border/50 hover:border-accent/20 transition-all"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                {/* Serviço */}
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <ServiceIcon category={product.category} size={18} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-text truncate">
+                      {product.name}
+                    </p>
+                    <p className="text-text-muted text-xs capitalize">
+                      {product.category
+                        ? categoryLabels[
+                            product.category as keyof typeof categoryLabels
+                          ] || product.category
+                        : "Sem categoria"}
+                    </p>
+                  </div>
+                </div>
 
-                      <button
-                        onClick={() =>
-                          handleToggleActive(product.id, product.is_active)
-                        }
-                        className={`p-1.5 rounded-lg transition ${
-                          product.is_active
-                            ? "bg-red-500/20 text-red-500 hover:bg-red-500/30"
-                            : "bg-green-500/20 text-green-500 hover:bg-green-500/30"
-                        }`}
-                        title={product.is_active ? "Desativar" : "Ativar"}
-                      >
-                        {product.is_active ? (
-                          <XCircleIcon size={16} />
-                        ) : (
-                          <CheckCircleIcon size={16} />
-                        )}
-                      </button>
+                {/* Preço e Duração */}
+                <div className="flex flex-wrap items-center gap-4 text-sm">
+                  <span className="text-accent font-bold">
+                    {formatPrice(product.price)}
+                  </span>
+                  <span className="text-text-muted text-xs flex items-center gap-1">
+                    <ClockIcon size={14} />
+                    {product.duration_minutes} min
+                  </span>
+                  <span
+                    className={`px-2 py-1 rounded-full text-[10px] font-medium ${
+                      product.is_active
+                        ? "bg-green-500/10 text-green-500 border-green-500/30 border"
+                        : "bg-red-500/10 text-red-500 border-red-500/30 border"
+                    }`}
+                  >
+                    {product.is_active ? "Ativo" : "Inativo"}
+                  </span>
+                </div>
 
-                      <ConfirmPopup
-                        trigger={
-                          <button
-                            className="p-1.5 bg-red-500/20 text-red-500 rounded-lg hover:bg-red-500/30 transition"
-                            title="Excluir"
-                          >
-                            <XIcon size={16} />
-                          </button>
-                        }
-                        onConfirm={() => handleDelete(product.id)}
-                        title="Excluir Serviço"
-                        message={`Tem certeza que deseja excluir o serviço "${product.name}"?`}
-                        confirmText="Excluir"
-                        cancelText="Cancelar"
-                        variant="danger"
-                      />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                {/* Ações */}
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => handleOpenEdit(product)}
+                    className="p-1.5 bg-accent/10 text-accent rounded-lg hover:bg-accent/20 transition"
+                    title="Editar"
+                  >
+                    <PencilIcon size={14} />
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      handleToggleActive(product.id, product.is_active)
+                    }
+                    className={`p-1.5 rounded-lg transition ${
+                      product.is_active
+                        ? "bg-red-500/20 text-red-500 hover:bg-red-500/30"
+                        : "bg-green-500/20 text-green-500 hover:bg-green-500/30"
+                    }`}
+                    title={product.is_active ? "Desativar" : "Ativar"}
+                  >
+                    {product.is_active ? (
+                      <XCircleIcon size={14} />
+                    ) : (
+                      <CheckCircleIcon size={14} />
+                    )}
+                  </button>
+
+                  <ConfirmPopup
+                    trigger={
+                      <button
+                        className="p-1.5 bg-red-500/20 text-red-500 rounded-lg hover:bg-red-500/30 transition"
+                        title="Excluir"
+                      >
+                        <XIcon size={14} />
+                      </button>
+                    }
+                    onConfirm={() => handleDelete(product.id)}
+                    title="Excluir Serviço"
+                    message={`Tem certeza que deseja excluir o serviço "${product.name}"?`}
+                    confirmText="Excluir"
+                    cancelText="Cancelar"
+                    variant="danger"
+                    size="sm"
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Paginação */}
+      {/* ✅ Paginação */}
       {total > limit && (
-        <div className="flex justify-between items-center pt-4 border-t border-border">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t border-border/50 mt-6">
           <p className="text-text-muted text-sm">
             Mostrando {(page - 1) * limit + 1} - {Math.min(page * limit, total)}{" "}
             de {total}
@@ -344,42 +338,42 @@ export const Products = () => {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="px-3 py-1 border border-border rounded-lg text-text-muted hover:text-text hover:border-accent/50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 border border-border/50 rounded-xl text-text-muted hover:text-text hover:border-accent/30 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >
               Anterior
             </button>
-            <span className="px-3 py-1 bg-accent/10 text-accent rounded-lg text-sm">
+            <span className="px-4 py-2 bg-accent/10 text-accent rounded-xl text-sm font-medium">
               {page}
             </span>
             <button
               onClick={() => setPage((p) => p + 1)}
               disabled={page * limit >= total}
-              className="px-3 py-1 border border-border rounded-lg text-text-muted hover:text-text hover:border-accent/50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 border border-border/50 rounded-xl text-text-muted hover:text-text hover:border-accent/30 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >
-              Próximo
+              Próxima
             </button>
           </div>
         </div>
       )}
 
-      {/* Modal de Criar/Editar */}
+      {/* ✅ Modal de Criar/Editar */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-primary-light rounded-2xl max-w-md w-full p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-serif text-xl font-bold text-text">
+        <div className="fixed inset-0 bg-black/80 flex items-end sm:items-center justify-center z-50 p-4">
+          <div className="bg-primary-light rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-slideUp">
+            <div className="sticky top-0 bg-primary-light border-b border-border/50 p-4 flex justify-between items-center z-10">
+              <h3 className="font-serif text-lg font-bold text-text">
                 {editingProduct ? "Editar Serviço" : "Novo Serviço"}
               </h3>
               <button
                 onClick={handleCloseModal}
-                className="text-text-muted hover:text-text transition"
+                className="p-2 text-text-muted hover:text-text transition rounded-xl hover:bg-primary"
                 disabled={isSubmitting}
               >
-                <XIcon size={24} />
+                <XIcon size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="space-y-4">
+            <form onSubmit={handleSave} className="p-5 space-y-4">
               <Input
                 label="Nome do Serviço"
                 placeholder="Ex: Corte Degradê"
@@ -389,7 +383,32 @@ export const Products = () => {
                 }
                 required
                 disabled={isSubmitting}
+                containerClassName="bg-primary/50 rounded-xl p-1"
               />
+
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1.5">
+                  Categoria
+                </label>
+                <select
+                  value={formData.category}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      category: e.target.value as ProductCategory | "",
+                    })
+                  }
+                  className="w-full px-4 py-3 bg-primary/50 border border-border/50 rounded-xl text-text focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all disabled:opacity-50"
+                  disabled={isSubmitting}
+                >
+                  <option value="">Selecione uma categoria</option>
+                  {Object.entries(categoryLabels).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
               <Input
                 label="Preço"
@@ -403,6 +422,7 @@ export const Products = () => {
                 required
                 disabled={isSubmitting}
                 helperText="Use ponto para decimais (ex: 45.50)"
+                containerClassName="bg-primary/50 rounded-xl p-1"
               />
 
               <Input
@@ -416,39 +436,55 @@ export const Products = () => {
                 required
                 disabled={isSubmitting}
                 helperText="Tempo estimado para o serviço"
+                containerClassName="bg-primary/50 rounded-xl p-1"
               />
 
-              <div className="flex gap-3 pt-2">
-                <button
+              {/* Preview do ícone */}
+              {formData.category && (
+                <div className="flex items-center gap-3 p-4 bg-primary/50 rounded-xl border border-border/50">
+                  <div className="w-12 h-12 bg-accent/10 rounded-xl flex items-center justify-center">
+                    <ServiceIcon
+                      category={formData.category as ProductCategory}
+                      size={28}
+                    />
+                  </div>
+                  <div>
+                    <p className="text-text text-sm font-medium">
+                      Pré-visualização
+                    </p>
+                    <p className="text-text-muted text-xs">
+                      Ícone baseado na categoria selecionada
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="md"
+                  fullWidth
                   onClick={handleCloseModal}
-                  className="flex-1 px-4 py-2 text-text-secondary hover:text-text transition border border-border rounded-lg hover:border-border-light"
                   disabled={isSubmitting}
                 >
                   Cancelar
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="flex-1 btn-primary flex items-center justify-center gap-2"
+                  variant="primary"
+                  size="md"
+                  fullWidth
+                  icon={<CheckCircleIcon size={18} />}
+                  loading={isSubmitting}
                 >
-                  {isSubmitting ? (
-                    <>
-                      <Spinner color="#1A1A1A" size={10} />
-                      <span>Salvando...</span>
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircleIcon size={18} />
-                      <span>{editingProduct ? "Atualizar" : "Criar"}</span>
-                    </>
-                  )}
-                </button>
+                  {editingProduct ? "Atualizar" : "Criar"}
+                </Button>
               </div>
             </form>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
