@@ -24,25 +24,27 @@ export const Button: React.FC<ButtonProps> = ({
   disabled,
   ...props
 }) => {
+  // ✅ Variantes com foco em mobile (touch-friendly)
   const variants = {
     primary:
-      "bg-accent text-primary-dark hover:bg-accent-light shadow-gold hover:shadow-gold-lg active:scale-[0.98]",
+      "bg-accent text-primary-dark hover:bg-accent-light shadow-gold hover:shadow-gold-lg active:scale-[0.97]",
     secondary:
-      "bg-primary-light border border-border text-text hover:border-accent/50 hover:bg-accent/5 active:scale-[0.98]",
+      "bg-primary-light border border-border/50 text-text hover:border-accent/50 hover:bg-accent/5 active:scale-[0.97]",
     outline:
-      "bg-transparent border-2 border-accent text-accent hover:bg-accent/10 active:scale-[0.98]",
-    gold: "bg-gradient-to-r from-accent-dark via-accent to-accent-light text-primary-dark hover:opacity-90 active:scale-[0.98]",
+      "bg-transparent border-2 border-accent text-accent hover:bg-accent/10 active:scale-[0.97]",
+    gold: "bg-gradient-to-r from-accent-dark via-accent to-accent-light text-primary-dark hover:opacity-90 active:scale-[0.97]",
     ghost:
-      "bg-transparent text-text-muted hover:text-text hover:bg-primary-light/50 active:scale-[0.98]",
+      "bg-transparent text-text-muted hover:text-text hover:bg-primary-light/50 active:scale-[0.97]",
     danger:
-      "bg-red-500/20 text-red-500 border border-red-500/30 hover:bg-red-500/30 active:scale-[0.98]",
+      "bg-red-500/20 text-red-500 border border-red-500/30 hover:bg-red-500/30 active:scale-[0.97]",
   };
 
+  // ✅ Tamanhos otimizados para toque em mobile (mínimo 44px)
   const sizes = {
-    sm: "px-4 py-2 text-xs rounded-xl gap-1.5",
-    md: "px-6 py-3 text-sm rounded-xl gap-2",
-    lg: "px-8 py-4 text-base rounded-2xl gap-2.5",
-    xl: "px-10 py-5 text-lg rounded-2xl gap-3",
+    sm: "px-4 py-2.5 text-xs rounded-xl gap-1.5 min-h-[40px]",
+    md: "px-5 py-3 text-sm rounded-xl gap-2 min-h-[44px]",
+    lg: "px-6 py-4 text-base rounded-2xl gap-2.5 min-h-[48px]",
+    xl: "px-8 py-5 text-lg rounded-2xl gap-3 min-h-[52px]",
   };
 
   const isDisabled = disabled || loading;
@@ -51,7 +53,7 @@ export const Button: React.FC<ButtonProps> = ({
     <button
       className={`
         inline-flex items-center justify-center font-semibold
-        transition-all duration-200
+        transition-all duration-200 ease-in-out
         ${variants[variant]}
         ${sizes[size]}
         ${fullWidth ? "w-full" : ""}

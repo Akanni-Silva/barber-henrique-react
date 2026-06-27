@@ -1,7 +1,7 @@
+// src/components/Common/RescheduleModal.tsx
 /* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-// src/components/Common/RescheduleModal.tsx
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   XIcon,
@@ -186,9 +186,9 @@ export const RescheduleModal: React.FC<RescheduleModalProps> = ({
   const renderTimeSlots = () => {
     if (loadingSlots) {
       return (
-        <div className="flex items-center justify-center py-6">
-          <Spinner color="#C9A84C" size={16} />
-          <span className="ml-2 text-text-muted text-sm">
+        <div className="flex items-center justify-center py-4">
+          <Spinner color="#C9A84C" size={14} />
+          <span className="ml-2 text-text-muted text-xs">
             Carregando horários...
           </span>
         </div>
@@ -197,37 +197,37 @@ export const RescheduleModal: React.FC<RescheduleModalProps> = ({
 
     if (availableSlots.length === 0) {
       return (
-        <div className="text-center py-6">
-          <div className="text-4xl mb-3">🕐</div>
-          <p className="text-text-muted text-sm font-medium">
+        <div className="text-center py-4">
+          <div className="text-3xl mb-2">🕐</div>
+          <p className="text-text-muted text-xs font-medium">
             Nenhum horário disponível
           </p>
-          <p className="text-text-muted text-xs mt-1">
-            Selecione outra data ou verifique o horário de funcionamento
+          <p className="text-text-muted text-[10px] mt-0.5">
+            Selecione outra data
           </p>
         </div>
       );
     }
 
     return (
-      <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto p-1">
+      <div className="grid grid-cols-3 gap-1.5 max-h-40 overflow-y-auto p-0.5">
         {availableSlots.map((slot) => (
           <button
             key={slot}
             type="button"
             onClick={() => setNewTime(slot)}
             className={`
-              p-2.5 rounded-xl text-sm font-medium transition-all duration-200
+              py-2 rounded-lg text-xs font-medium transition-all duration-200
               flex items-center justify-center gap-1
               ${
                 newTime === slot
                   ? "bg-accent text-primary-dark shadow-gold scale-[0.97]"
-                  : "bg-primary border border-border text-text hover:border-accent/50 hover:bg-accent/5"
+                  : "bg-primary border border-border/50 text-text hover:border-accent/50 hover:bg-accent/5"
               }
             `}
           >
             <ClockIcon
-              size={14}
+              size={12}
               className={
                 newTime === slot ? "text-primary-dark" : "text-text-muted"
               }
@@ -240,51 +240,50 @@ export const RescheduleModal: React.FC<RescheduleModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-primary-light rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-border/50 shadow-2xl">
-        {/* ✅ Header com gradiente */}
-        <div className="bg-gradient-to-r from-accent/10 to-transparent border-b border-border/50 p-5 sticky top-0 bg-primary-light z-10">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center border border-accent/20">
-                <CalendarIcon size={20} className="text-accent" />
-              </div>
-              <h3 className="font-serif text-lg font-bold text-text">
-                Reagendar
-              </h3>
+    <div className="fixed inset-0 bg-black/80 flex items-end sm:items-center justify-center z-50 p-3 sm:p-4">
+      <div className="bg-primary-light rounded-t-2xl sm:rounded-2xl w-full max-w-sm max-h-[92vh] sm:max-h-[85vh] overflow-y-auto border border-border/50 shadow-2xl animate-slideUp">
+        {/* ✅ Header - Mobile First */}
+        <div className="sticky top-0 bg-primary-light border-b border-border/50 px-4 py-3.5 flex justify-between items-center z-10 rounded-t-2xl">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 bg-accent/10 rounded-xl flex items-center justify-center border border-accent/20 flex-shrink-0">
+              <CalendarIcon size={18} className="text-accent" />
             </div>
-            <button
-              onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center text-text-muted hover:text-text transition rounded-lg hover:bg-primary"
-              disabled={isSubmitting || isLoading}
-            >
-              <XIcon size={20} />
-            </button>
+            <h3 className="font-serif text-base font-bold text-text">
+              Reagendar
+            </h3>
           </div>
+          <button
+            onClick={onClose}
+            className="w-9 h-9 flex items-center justify-center text-text-muted hover:text-text transition rounded-xl hover:bg-primary active:scale-[0.95]"
+            disabled={isSubmitting || isLoading}
+          >
+            <XIcon size={20} />
+          </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-5">
+        <form onSubmit={handleSubmit} className="p-4 space-y-4">
           {/* ✅ Informações atuais - Card estilizado */}
-          <div className="bg-primary/50 rounded-xl p-4 border border-border/50 space-y-1.5">
-            <p className="text-text-muted text-xs font-medium uppercase tracking-wider">
+          <div className="bg-primary/50 rounded-xl p-3.5 border border-border/50 space-y-1.5">
+            <p className="text-text-muted text-[10px] font-medium uppercase tracking-wider">
               Agendamento Atual
             </p>
-            <p className="text-text font-semibold">
+            <p className="text-text font-semibold text-sm">
               {appointment.client?.name || "Cliente"}
             </p>
-            <div className="flex items-center gap-3 text-sm text-text-muted">
-              <span>
+            <div className="flex flex-wrap items-center gap-2 text-xs text-text-muted">
+              <span className="flex items-center gap-1">
+                <CalendarIcon size={12} />
                 {new Date(appointment.appointment_date).toLocaleDateString(
                   "pt-BR",
                 )}
               </span>
               <span className="w-1 h-1 bg-text-muted rounded-full"></span>
               <span className="flex items-center gap-1">
-                <ClockIcon size={14} />
+                <ClockIcon size={12} />
                 {appointment.appointment_time.substring(0, 5)}
               </span>
               <span className="w-1 h-1 bg-text-muted rounded-full"></span>
-              <span className="text-accent">
+              <span className="text-accent text-xs font-medium">
                 {appointment.service?.name || "Serviço"}
               </span>
             </div>
@@ -292,7 +291,7 @@ export const RescheduleModal: React.FC<RescheduleModalProps> = ({
 
           {/* ✅ Nova Data - Input estilizado */}
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-1.5">
+            <label className="block text-xs font-medium text-text-secondary mb-1.5">
               Nova Data
             </label>
             <Input
@@ -305,35 +304,36 @@ export const RescheduleModal: React.FC<RescheduleModalProps> = ({
               required
               disabled={isSubmitting || isLoading || loadingSlots}
               min={new Date().toISOString().split("T")[0]}
-              className="bg-primary/50 border-border/50"
+              className="bg-primary/50 border-border/50 text-text"
+              inputSize="md"
             />
           </div>
 
           {/* ✅ Horários Disponíveis */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-sm font-medium text-text-secondary">
+              <label className="text-xs font-medium text-text-secondary">
                 Horários Disponíveis
               </label>
               {availableSlots.length > 0 && !loadingSlots && (
-                <span className="text-xs text-text-muted">
+                <span className="text-[10px] text-text-muted bg-primary/30 px-2 py-0.5 rounded-full">
                   {availableSlots.length} disponíveis
                 </span>
               )}
             </div>
             {renderTimeSlots()}
             {newTime && availableSlots.includes(newTime) && (
-              <p className="text-green-500 text-xs mt-2 flex items-center gap-1">
+              <p className="text-green-500 text-[10px] mt-1.5 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
                 Horário selecionado: {newTime}
               </p>
             )}
           </div>
 
-          {/* ✅ Serviço - Select estilizado */}
+          {/* ✅ Serviço - Select corrigido */}
           {services && services.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-text-secondary mb-1.5">
+              <label className="block text-xs font-medium text-text-secondary mb-1.5">
                 Serviço
               </label>
               <select
@@ -346,22 +346,52 @@ export const RescheduleModal: React.FC<RescheduleModalProps> = ({
                     fetchAvailableSlots(newDate, serviceId);
                   }
                 }}
-                className="w-full px-4 py-3 bg-primary/50 border border-border/50 rounded-xl text-text focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all duration-200 disabled:opacity-50"
+                className="w-full px-4 py-3 bg-primary border border-border/50 rounded-xl text-sm text-text focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all duration-200 disabled:opacity-50 appearance-none"
                 disabled={isSubmitting || isLoading || loadingSlots}
+                style={{ color: "#E8E6E3" }}
               >
-                <option value="">Manter serviço atual</option>
+                <option
+                  value=""
+                  className="text-text-muted"
+                  style={{ color: "#9CA3AF" }}
+                >
+                  Manter serviço atual
+                </option>
                 {services.map((service) => (
-                  <option key={service.id} value={service.id}>
+                  <option
+                    key={service.id}
+                    value={service.id}
+                    className="text-text"
+                    style={{ color: "#E8E6E3", background: "#1A1A1A" }}
+                  >
                     {service.name} - {formatPrice(Number(service.price))} (
                     {service.duration_minutes}min)
                   </option>
                 ))}
               </select>
+              {/* ✅ Ícone de seta personalizado para o select */}
+              <div className="relative">
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-text-muted">
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </div>
+              </div>
             </div>
           )}
 
-          {/* ✅ Botões de ação */}
-          <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
+          {/* ✅ Botões de ação - Mobile First */}
+          <div className="flex flex-col-reverse sm:flex-row gap-2.5 pt-2">
             <Button
               type="button"
               variant="ghost"

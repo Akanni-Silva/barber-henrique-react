@@ -16,12 +16,15 @@ import {
   CalendarPlusIcon,
   ArrowLeftIcon,
   MagnifyingGlassIcon,
+  CaretCircleUpIcon,
+  CaretCircleDownIcon,
 } from "@phosphor-icons/react";
 import { useApi } from "../../hooks/useApi";
 import { Spinner } from "../../components/Common/Spinner";
 import { RescheduleModal } from "../../components/Common/RescheduleModal";
 import { ServiceIcon } from "../../components/Common/ServiceIcon";
 import { Button } from "../../components/Common/Button";
+import { ConfirmPopup } from "../../components/Common/ConfirmPopup";
 import { formatPrice } from "../../utils/formatPrice";
 import { formatDate } from "../../utils/formatDate";
 import {
@@ -30,9 +33,11 @@ import {
 } from "../../utils/appointmentStatus";
 import type { Appointment, AppointmentFilters, Product } from "../../types";
 import { useGuestRedirect } from "../../hooks/useGuestRedirect";
+import { useFilter } from "../../contexts/FilterContext";
 
 export const AppointmentsManagement = () => {
   const { loading, handleRequest, endpoints } = useApi();
+  const { showFilters, toggleFilters, closeFilters } = useFilter();
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [total, setTotal] = useState(0);
@@ -43,7 +48,6 @@ export const AppointmentsManagement = () => {
     startDate: "",
     endDate: "",
   });
-  const [showFilters, setShowFilters] = useState(false);
   const [selectedAppointment, setSelectedAppointment] =
     useState<Appointment | null>(null);
   const [showDetails, setShowDetails] = useState(false);
@@ -162,7 +166,7 @@ export const AppointmentsManagement = () => {
   const clearFilters = () => {
     setFilters({ status: "", startDate: "", endDate: "" });
     setPage(1);
-    setShowFilters(false);
+    closeFilters();
     setSearchTerm("");
   };
 
@@ -364,78 +368,84 @@ export const AppointmentsManagement = () => {
   }
 
   return (
-    <>
-      {/* ✅ Header com navegação */}
-      <div className="flex items-center gap-3 mb-6">
+    <div className="pb-20">
+      {/* ✅ Header Mobile - Navegação */}
+      <div className="flex items-center gap-2 mb-4">
         <Link
           to="/dashboard"
           className="p-2 text-text-muted hover:text-accent transition rounded-xl hover:bg-accent/5"
         >
-          <ArrowLeftIcon size={20} />
+          <ArrowLeftIcon size={18} />
         </Link>
         <div>
-          <h1 className="font-serif text-2xl font-bold text-text">
-            📋 Agendamentos
-          </h1>
-          <p className="text-text-muted text-sm">
+          
+          <p className="text-text-muted text-xs">
             {total} agendamentos encontrados
           </p>
         </div>
       </div>
 
-      {/* ✅ Barra de busca e filtros */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <div className="flex-1 relative">
+      {/* ✅ Barra de busca e filtros - Mobile First */}
+      <div className="flex flex-col gap-2 mb-4">
+        <div className="relative">
           <MagnifyingGlassIcon
-            size={20}
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted"
+            size={18}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
           />
           <input
             type="text"
-            placeholder="Buscar por cliente ou serviço..."
+            placeholder="Buscar cliente ou serviço..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 bg-primary-light border border-border/50 rounded-xl text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all"
+            className="w-full pl-10 pr-3 py-2.5 bg-primary-light border border-border/50 rounded-xl text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all"
           />
         </div>
+
         <div className="flex gap-2">
           <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`px-4 py-3 rounded-xl border transition flex items-center gap-2 ${
+            onClick={toggleFilters}
+            className={`flex-1 px-3 py-2.5 rounded-xl border transition flex items-center justify-center gap-1.5 text-sm ${
               showFilters
                 ? "border-accent bg-accent/10 text-accent"
                 : "border-border/50 text-text-muted hover:border-accent/30"
             }`}
           >
-            <FunnelIcon size={18} />
-            <span className="hidden sm:inline">Filtros</span>
+            <FunnelIcon size={16} />
+            <span>Filtros</span>
+            {showFilters ? (
+              <CaretCircleUpIcon size={14} />
+            ) : (
+              <CaretCircleDownIcon size={14} />
+            )}
           </button>
+
           {(filters.status ||
             filters.startDate ||
             filters.endDate ||
             searchTerm) && (
             <button
               onClick={clearFilters}
-              className="px-4 py-3 rounded-xl border border-border/50 text-text-muted hover:text-accent hover:border-accent/30 transition"
+              className="px-3 py-2.5 rounded-xl border border-border/50 text-text-muted hover:text-accent hover:border-accent/30 transition flex items-center gap-1 text-sm"
             >
-              <XIcon size={18} />
+              <XIcon size={16} />
+              <span className="hidden xs:inline">Limpar</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* ✅ Filtros expandíveis */}
+      {/* ✅ Filtros expandíveis - Mobile First */}
       {showFilters && (
-        <div className="bg-primary-light rounded-2xl p-4 mb-6 border border-border/50">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-primary-light rounded-xl p-3 mb-4 border border-border/50 animate-fadeIn">
+          <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-text-secondary mb-1.5">
+              <label className="block text-xs font-medium text-text-secondary mb-1">
                 Status
               </label>
               <select
                 value={filters.status}
                 onChange={(e) => handleFilterChange("status", e.target.value)}
-                className="w-full px-4 py-3 bg-primary border border-border/50 rounded-xl text-text focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all"
+                className="w-full px-3 py-2 bg-primary border border-border/50 rounded-lg text-sm text-text focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all"
               >
                 <option value="">Todos</option>
                 <option value="pending">Pendente</option>
@@ -444,52 +454,64 @@ export const AppointmentsManagement = () => {
                 <option value="cancelled">Cancelado</option>
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-text-secondary mb-1.5">
-                Data Inicial
-              </label>
-              <input
-                type="date"
-                value={filters.startDate}
-                onChange={(e) =>
-                  handleFilterChange("startDate", e.target.value)
-                }
-                className="w-full px-4 py-3 bg-primary border border-border/50 rounded-xl text-text focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all"
-              />
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-medium text-text-secondary mb-1">
+                  Data Inicial
+                </label>
+                <input
+                  type="date"
+                  value={filters.startDate}
+                  onChange={(e) =>
+                    handleFilterChange("startDate", e.target.value)
+                  }
+                  className="w-full px-3 py-2 bg-primary border border-border/50 rounded-lg text-sm text-text focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-text-secondary mb-1">
+                  Data Final
+                </label>
+                <input
+                  type="date"
+                  value={filters.endDate}
+                  onChange={(e) =>
+                    handleFilterChange("endDate", e.target.value)
+                  }
+                  className="w-full px-3 py-2 bg-primary border border-border/50 rounded-lg text-sm text-text focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all"
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-text-secondary mb-1.5">
-                Data Final
-              </label>
-              <input
-                type="date"
-                value={filters.endDate}
-                onChange={(e) => handleFilterChange("endDate", e.target.value)}
-                className="w-full px-4 py-3 bg-primary border border-border/50 rounded-xl text-text focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all"
-              />
-            </div>
+
+            <button
+              onClick={clearFilters}
+              className="w-full py-2 text-xs text-text-muted hover:text-accent transition border border-border/50 rounded-lg hover:border-accent/30"
+            >
+              Limpar todos os filtros
+            </button>
           </div>
         </div>
       )}
 
-      {/* ✅ Lista de Agendamentos */}
+      {/* ✅ Lista de Agendamentos - Cards Mobile */}
       {filteredAppointments.length === 0 ? (
-        <div className="text-center py-16 bg-primary-light rounded-2xl border border-border/50">
-          <div className="text-6xl mb-4">📭</div>
-          <h3 className="font-serif text-xl font-bold text-text mb-2">
-            Nenhum agendamento encontrado
+        <div className="text-center py-12 bg-primary-light rounded-xl border border-border/50">
+          <div className="text-4xl mb-3">📭</div>
+          <h3 className="font-serif text-lg font-bold text-text mb-1">
+            Nenhum agendamento
           </h3>
-          <p className="text-text-muted">
+          <p className="text-text-muted text-sm">
             {filters.status ||
             filters.startDate ||
             filters.endDate ||
             searchTerm
-              ? "Tente ajustar os filtros ou a busca"
-              : "Ainda não há agendamentos realizados"}
+              ? "Ajuste os filtros ou a busca"
+              : "Ainda não há agendamentos"}
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {filteredAppointments.map((appointment) => {
             const status = getStatusBadge(appointment.status);
             const temporalStatus = getTemporalStatus(
@@ -501,7 +523,7 @@ export const AppointmentsManagement = () => {
             return (
               <div
                 key={appointment.id}
-                className={`bg-primary-light rounded-2xl p-4 border transition-all hover:border-accent/20 ${
+                className={`bg-primary-light rounded-xl p-3 border transition-all hover:border-accent/20 ${
                   temporalStatus.isLate
                     ? "border-red-500/30 bg-red-500/5"
                     : temporalStatus.label.includes("Começa em")
@@ -509,80 +531,107 @@ export const AppointmentsManagement = () => {
                       : "border-border/50"
                 }`}
               >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  {/* Cliente */}
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <UserIcon size={18} className="text-accent" />
+                <div className="flex flex-col gap-2">
+                  {/* Cliente e Serviço */}
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-accent/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <UserIcon size={14} className="text-accent" />
                     </div>
-                    <div className="min-w-0">
-                      <p className="font-semibold text-text truncate">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-text text-sm truncate">
                         {appointment.client?.name || "Cliente"}
                       </p>
-                      <p className="text-text-muted text-xs truncate">
-                        {appointment.client?.phone || ""}
-                      </p>
+                      <div className="flex items-center gap-1.5 text-xs text-text-muted">
+                        <span className="flex items-center gap-0.5">
+                          <ClockIcon size={10} />
+                          {appointment.appointment_time}
+                        </span>
+                        <span className="w-0.5 h-0.5 bg-text-muted rounded-full" />
+                        <span className="flex items-center gap-0.5 truncate">
+                          {appointment.service?.category ? (
+                            <ServiceIcon
+                              category={appointment.service.category}
+                              size={10}
+                            />
+                          ) : (
+                            "✂️"
+                          )}
+                          {appointment.service?.name || "Serviço"}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Serviço */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {appointment.service?.category ? (
-                      <ServiceIcon
-                        category={appointment.service.category}
-                        size={16}
-                        className="text-text-muted"
-                      />
-                    ) : (
-                      <span className="text-xs">✂️</span>
-                    )}
-                    <span className="text-text text-sm truncate max-w-[120px]">
-                      {appointment.service?.name || "Serviço"}
-                    </span>
-                  </div>
-
-                  {/* Data/Hora */}
-                  <div className="flex items-center gap-3 text-sm flex-shrink-0">
-                    <span className="text-text whitespace-nowrap">
+                  {/* Data e Status */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-text-muted text-xs">
                       {formatDate(appointment.appointment_date)}
                     </span>
-                    <span className="text-text-muted text-xs flex items-center gap-1 whitespace-nowrap">
-                      <ClockIcon size={12} />
-                      {appointment.appointment_time}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={`px-1.5 py-0.5 rounded-full text-[8px] font-medium border ${temporalStatus.className}`}
+                      >
+                        {temporalStatus.label}
+                      </span>
+                      <span
+                        className={`px-1.5 py-0.5 rounded-full text-[8px] font-medium ${status.className}`}
+                      >
+                        {status.label}
+                      </span>
+                    </div>
                   </div>
 
-                  {/* Badges e Ações */}
-                  <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
-                    <span className={status.className}>{status.label}</span>
-                    <span
-                      className={`px-2 py-1 rounded-full text-[10px] font-medium border ${temporalStatus.className}`}
+                  {/* Ações - Botões maiores para mobile */}
+                  <div className="flex items-center justify-end gap-1 pt-1 border-t border-border/30">
+                    <button
+                      onClick={() => {
+                        setSelectedAppointment(appointment);
+                        setShowDetails(true);
+                      }}
+                      className="p-2 bg-accent/10 text-accent rounded-lg hover:bg-accent/20 transition flex items-center gap-1 text-xs"
                     >
-                      {temporalStatus.label}
-                    </span>
+                      <EyeIcon size={14} />
+                      <span className="hidden xs:inline">Detalhes</span>
+                    </button>
 
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => {
-                          setSelectedAppointment(appointment);
-                          setShowDetails(true);
-                        }}
-                        className="p-1.5 bg-accent/10 text-accent rounded-lg hover:bg-accent/20 transition"
-                        title="Ver detalhes"
-                      >
-                        <EyeIcon size={14} />
-                      </button>
-                      {actions.map((action) => (
+                    {actions.map((action) => {
+                      if (action.key === "cancel") {
+                        return (
+                          <ConfirmPopup
+                            key={action.key}
+                            trigger={
+                              <button
+                                className={`p-2 rounded-lg transition ${action.className} flex items-center gap-1 text-xs`}
+                              >
+                                {action.icon}
+                                <span className="hidden xs:inline">
+                                  {action.label}
+                                </span>
+                              </button>
+                            }
+                            onConfirm={action.onClick}
+                            title="Cancelar Agendamento"
+                            message={`Deseja cancelar o agendamento de ${appointment.client?.name || "cliente"}?`}
+                            confirmText="Cancelar"
+                            cancelText="Voltar"
+                            variant="danger"
+                            size="sm"
+                          />
+                        );
+                      }
+                      return (
                         <button
                           key={action.key}
                           onClick={action.onClick}
-                          className={`p-1.5 rounded-lg transition ${action.className}`}
-                          title={action.label}
+                          className={`p-2 rounded-lg transition ${action.className} flex items-center gap-1 text-xs`}
                         >
                           {action.icon}
+                          <span className="hidden xs:inline">
+                            {action.label}
+                          </span>
                         </button>
-                      ))}
-                    </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -591,28 +640,28 @@ export const AppointmentsManagement = () => {
         </div>
       )}
 
-      {/* ✅ Paginação */}
+      {/* ✅ Paginação - Mobile First */}
       {total > limit && (
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t border-border/50 mt-6">
-          <p className="text-text-muted text-sm">
-            Mostrando {(page - 1) * limit + 1} - {Math.min(page * limit, total)}{" "}
-            de {total}
+        <div className="flex flex-col items-center gap-2 pt-3 border-t border-border/50 mt-4">
+          <p className="text-text-muted text-xs">
+            {(page - 1) * limit + 1} - {Math.min(page * limit, total)} de{" "}
+            {total}
           </p>
           <div className="flex gap-2">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="px-4 py-2 border border-border/50 rounded-xl text-text-muted hover:text-text hover:border-accent/30 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              className="px-4 py-2 border border-border/50 rounded-xl text-text-muted hover:text-text hover:border-accent/30 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm flex-1"
             >
               Anterior
             </button>
-            <span className="px-4 py-2 bg-accent/10 text-accent rounded-xl text-sm font-medium">
+            <span className="px-4 py-2 bg-accent/10 text-accent rounded-xl text-sm font-medium min-w-[40px] text-center">
               {page}
             </span>
             <button
               onClick={() => setPage((p) => p + 1)}
               disabled={page * limit >= total}
-              className="px-4 py-2 border border-border/50 rounded-xl text-text-muted hover:text-text hover:border-accent/30 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              className="px-4 py-2 border border-border/50 rounded-xl text-text-muted hover:text-text hover:border-accent/30 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm flex-1"
             >
               Próxima
             </button>
@@ -620,23 +669,23 @@ export const AppointmentsManagement = () => {
         </div>
       )}
 
-      {/* ✅ Modal de Detalhes */}
+      {/* ✅ Modal de Detalhes - Mobile First */}
       {showDetails && selectedAppointment && (
-        <div className="fixed inset-0 bg-black/80 flex items-end sm:items-center justify-center z-50 p-4">
-          <div className="bg-primary-light rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-slideUp">
+        <div className="fixed inset-0 bg-black/80 flex items-end justify-center z-50 p-4">
+          <div className="bg-primary-light rounded-2xl w-full max-w-md max-h-[85vh] overflow-y-auto animate-slideUp">
             <div className="sticky top-0 bg-primary-light border-b border-border/50 p-4 flex justify-between items-center z-10">
               <h3 className="font-serif text-lg font-bold text-text">
-                Detalhes do Agendamento
+                Detalhes
               </h3>
               <button
                 onClick={() => setShowDetails(false)}
-                className="p-2 text-text-muted hover:text-text transition rounded-xl hover:bg-primary"
+                className="p-2 text-text-muted hover:text-text transition rounded-lg hover:bg-primary"
               >
                 <XIcon size={20} />
               </button>
             </div>
 
-            <div className="p-5 space-y-4">
+            <div className="p-4 space-y-4">
               {/* Cliente */}
               <div className="flex items-center gap-3 p-3 bg-primary/50 rounded-xl">
                 <div className="w-12 h-12 bg-accent/10 rounded-xl flex items-center justify-center">
@@ -735,22 +784,46 @@ export const AppointmentsManagement = () => {
 
               {/* Ações */}
               <div className="flex flex-wrap gap-2 pt-2">
-                {getAvailableActions(selectedAppointment).map((action) => (
-                  <Button
-                    key={action.key}
-                    variant="primary"
-                    size="sm"
-                    icon={action.icon}
-                    onClick={() => {
-                      action.onClick();
-                      if (action.key !== "reschedule") {
-                        setShowDetails(false);
-                      }
-                    }}
-                  >
-                    {action.label}
-                  </Button>
-                ))}
+                {getAvailableActions(selectedAppointment).map((action) => {
+                  if (action.key === "cancel") {
+                    return (
+                      <ConfirmPopup
+                        key={action.key}
+                        trigger={
+                          <Button variant="danger" size="sm" icon={action.icon}>
+                            {action.label}
+                          </Button>
+                        }
+                        onConfirm={() => {
+                          action.onClick();
+                          setShowDetails(false);
+                        }}
+                        title="Cancelar Agendamento"
+                        message={`Deseja cancelar o agendamento de ${selectedAppointment.client?.name || "cliente"}?`}
+                        confirmText="Cancelar"
+                        cancelText="Voltar"
+                        variant="danger"
+                        size="sm"
+                      />
+                    );
+                  }
+                  return (
+                    <Button
+                      key={action.key}
+                      variant="primary"
+                      size="sm"
+                      icon={action.icon}
+                      onClick={() => {
+                        action.onClick();
+                        if (action.key !== "reschedule") {
+                          setShowDetails(false);
+                        }
+                      }}
+                    >
+                      {action.label}
+                    </Button>
+                  );
+                })}
                 <Button
                   variant="ghost"
                   size="sm"
@@ -777,7 +850,7 @@ export const AppointmentsManagement = () => {
         services={services}
         isLoading={isServicesLoading}
       />
-    </>
+    </div>
   );
 };
 

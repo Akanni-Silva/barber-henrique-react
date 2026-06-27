@@ -9,6 +9,8 @@ import {
   LockIcon,
   SignInIcon,
   UserPlusIcon,
+  ArrowRightIcon,
+  CheckCircleIcon,
 } from "@phosphor-icons/react";
 import { Input } from "../Common/Input";
 import { Spinner } from "../Common/Spinner";
@@ -53,51 +55,60 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      {/* ✅ Formulário com Cards */}
-      <div className="bg-primary-light/50 rounded-2xl p-1">
-        <Input
-          id="email"
-          label="Email"
-          type="email"
-          placeholder="seu@email.com"
-          icon={<EnvelopeIcon size={20} />}
-          iconPosition="left"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          error={error && !email ? "Email é obrigatório" : undefined}
-          disabled={loading}
-          required
-          autoComplete="email"
-          className="bg-transparent border-0 focus:ring-0"
-        />
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {/* ✅ Email - Mobile First */}
+      <div className="bg-primary-light rounded-xl p-4 border border-border/50">
+        <div className="bg-primary/50 rounded-lg p-1">
+          <Input
+            id="email"
+            label="Email"
+            type="email"
+            placeholder="seu@email.com"
+            icon={<EnvelopeIcon size={18} />}
+            iconPosition="left"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            error={error && !email ? "Email é obrigatório" : undefined}
+            disabled={loading}
+            required
+            autoComplete="email"
+            className="bg-transparent border-0 focus:ring-0 text-sm"
+            labelClassName="text-xs"
+            containerClassName="[&_input]:py-2.5 [&_input]:px-3 [&_input]:pl-10"
+          />
+        </div>
       </div>
 
-      <div className="bg-primary-light/50 rounded-2xl p-1">
-        <Input
-          id="password"
-          label="Senha"
-          type="password"
-          placeholder="********"
-          icon={<LockIcon size={20} />}
-          iconPosition="left"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          error={error && !password ? "Senha é obrigatória" : undefined}
-          helperText="Mínimo de 6 caracteres"
-          disabled={loading}
-          required
-          autoComplete="current-password"
-          minLength={6}
-          className="bg-transparent border-0 focus:ring-0"
-        />
+      {/* ✅ Senha - Mobile First */}
+      <div className="bg-primary-light rounded-xl p-4 border border-border/50">
+        <div className="bg-primary/50 rounded-lg p-1">
+          <Input
+            id="password"
+            label="Senha"
+            type="password"
+            placeholder="********"
+            icon={<LockIcon size={18} />}
+            iconPosition="left"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            error={error && !password ? "Senha é obrigatória" : undefined}
+            helperText="Mínimo de 6 caracteres"
+            disabled={loading}
+            required
+            autoComplete="current-password"
+            minLength={6}
+            className="bg-transparent border-0 focus:ring-0 text-sm"
+            labelClassName="text-xs"
+            containerClassName="[&_input]:py-2.5 [&_input]:px-3 [&_input]:pl-10"
+          />
+        </div>
       </div>
 
       {/* ✅ Link Esqueceu a Senha */}
       <div className="text-right">
         <button
           type="button"
-          className="text-text-muted text-xs hover:text-accent transition"
+          className="text-text-muted text-xs hover:text-accent transition font-medium"
         >
           Esqueceu a senha?
         </button>
@@ -110,11 +121,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         </div>
       )}
 
-      {/* ✅ Botão de submit estilizado */}
+      {/* ✅ Botão de submit - Mobile First */}
       <button
         type="submit"
         disabled={loading}
-        className="btn-primary w-full flex items-center justify-center gap-2 py-4 text-base rounded-xl font-semibold disabled:opacity-70 disabled:cursor-not-allowed"
+        className="btn-primary w-full flex items-center justify-center gap-2 py-3.5 text-sm rounded-xl font-semibold disabled:opacity-70 disabled:cursor-not-allowed min-h-[48px]"
       >
         {loading ? (
           <>
@@ -125,12 +136,19 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           <>
             <SignInIcon size={20} />
             <span>Entrar</span>
+            <ArrowRightIcon size={16} />
           </>
         )}
       </button>
 
-      {/* ✅ Link para registro */}
-      <div className="mt-6 text-center">
+      {/* ✅ Diferencial - Mobile First */}
+      <div className="flex items-center justify-center gap-2 text-text-muted text-xs">
+        <CheckCircleIcon size={14} className="text-accent" />
+        <span>Login seguro e rápido</span>
+      </div>
+
+      {/* ✅ Link para registro - Mobile First */}
+      <div className="text-center pt-2">
         <p className="text-text-muted text-sm">
           Não tem uma conta?{" "}
           <Link
@@ -138,19 +156,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             className="text-accent hover:text-accent-light transition font-medium inline-flex items-center gap-1"
           >
             <UserPlusIcon size={16} />
-            <span>Registre sua barbearia</span>
+            Registre sua barbearia
           </Link>
         </p>
-      </div>
-
-      {/* ✅ Diferencial */}
-      <div className="mt-8 text-center">
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent/5 rounded-full border border-accent/10">
-          <span className="text-accent text-xs">✂️</span>
-          <span className="text-text-muted text-xs">Desde 2024</span>
-          <span className="w-1 h-1 bg-text-muted rounded-full"></span>
-          <span className="text-text-muted text-xs">Premium Barber</span>
-        </div>
       </div>
     </form>
   );

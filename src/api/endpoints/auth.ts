@@ -1,9 +1,7 @@
+import type { UpdateProfileData } from "../../types";
 import { api } from "../axiosConfig";
 
 export const authEndpoint = {
-  // ❌ REMOVER - Rota não existe no backend
-  // checkRegister: async () => { ... },
-
   // ✅ Registrar barbeiro (validação automática no backend)
   register: async (data: {
     name: string;
@@ -34,6 +32,16 @@ export const authEndpoint = {
     new_password: string;
   }) => {
     const response = await api.patch("/auth/change-password", data);
+    return response.data;
+  },
+
+  updateProfile: async (data: UpdateProfileData) => {
+    const response = await api.patch("/auth/profile", data);
+    return response.data;
+  },
+
+  getPublicProfile: async () => {
+    const response = await api.get("/auth/public-profile");
     return response.data;
   },
 };

@@ -63,7 +63,8 @@ export const clientsEndpoint = {
   // Buscar histórico de agendamentos
   getHistory: async (id: number) => {
     const response = await api.get(`/clients/${id}/history`);
-    return response.data;
+    // ✅ A API retorna { client, appointments }, extraímos apenas appointments
+    return response.data?.appointments || [];
   },
 
   // Estatísticas (protegido)

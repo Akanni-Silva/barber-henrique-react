@@ -1,6 +1,6 @@
+// src/components/Common/ConfirmPopup.tsx
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/components/Common/ConfirmPopup.tsx
 import React from "react";
 import Popup from "reactjs-popup";
 import "reactjs-popup/dist/index.css";
@@ -75,13 +75,6 @@ export const ConfirmPopup: React.FC<ConfirmPopupProps> = ({
     },
   };
 
-  // ✅ Tamanhos do modal
-  const sizes = {
-    sm: "max-w-sm",
-    md: "max-w-md",
-    lg: "max-w-lg",
-  };
-
   const currentVariant = variants[variant];
 
   const defaultIcon = {
@@ -96,72 +89,90 @@ export const ConfirmPopup: React.FC<ConfirmPopupProps> = ({
 
   const finalIcon = icon || defaultIcon[variant];
 
-  // ✅ Conteúdo do popup
-  const PopupContent: React.FC<{ close: () => void }> = ({ close }) => (
-    <div className="p-6">
-      {/* ✅ Cabeçalho com ícone - Mobile First */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div
-            className={`w-12 h-12 rounded-xl flex items-center justify-center ${currentVariant.iconBg} border ${currentVariant.border}`}
-          >
-            {finalIcon}
+  // ✅ Conteúdo do popup - Mobile First
+  const PopupContent = React.useCallback(
+    ({ close }: { close: () => void }) => (
+      <div className="p-5 sm:p-6">
+        {/* ✅ Cabeçalho com ícone - Mobile First */}
+        <div className="flex items-start sm:items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div
+              className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${currentVariant.iconBg} border ${currentVariant.border}`}
+            >
+              {finalIcon}
+            </div>
+            <h3 className="font-serif text-base sm:text-lg font-bold text-text leading-tight">
+              {title}
+            </h3>
           </div>
-          <h3 className="font-serif text-lg sm:text-xl font-bold text-text leading-tight">
-            {title}
-          </h3>
+          <button
+            onClick={close}
+            className="w-8 h-8 flex items-center justify-center text-text-muted hover:text-text transition rounded-lg hover:bg-primary-light flex-shrink-0"
+            disabled={isLoading}
+          >
+            <XIcon size={18} />
+          </button>
         </div>
-        <button
-          onClick={close}
-          className="w-8 h-8 flex items-center justify-center text-text-muted hover:text-text transition rounded-lg hover:bg-primary-light"
-          disabled={isLoading}
-        >
-          <XIcon size={18} />
-        </button>
-      </div>
 
-      {/* ✅ Mensagem */}
-      <div className="mb-6">
-        <p className="text-text-secondary text-sm leading-relaxed">{message}</p>
-      </div>
+        {/* ✅ Mensagem */}
+        <div className="mb-5 sm:mb-6">
+          <p className="text-text-secondary text-xs sm:text-sm leading-relaxed">
+            {message}
+          </p>
+        </div>
 
-      {/* ✅ Botões de ação - Mobile First (coluna em telas pequenas) */}
-      <div className="flex flex-col-reverse sm:flex-row gap-2.5 justify-end">
-        <button
-          onClick={() => {
-            onCancel?.();
-            close();
-          }}
-          disabled={isLoading}
-          className="w-full sm:w-auto px-5 py-2.5 text-text-secondary hover:text-text transition border border-border rounded-xl hover:border-border-light disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-        >
-          {cancelText}
-        </button>
-        <button
-          onClick={() => {
-            onConfirm();
-          }}
-          disabled={isLoading || disabled}
-          className={`w-full sm:w-auto px-5 py-2.5 text-white rounded-xl transition flex items-center justify-center gap-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed ${currentVariant.button}`}
-        >
-          {isLoading ? (
-            <>
-              <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              <span>Processando...</span>
-            </>
-          ) : (
-            <>
-              {variant === "danger" && <TrashIcon size={16} />}
-              {variant === "success" && <CheckIcon size={16} />}
-              {variant === "warning" && <WarningIcon size={16} />}
-              {variant === "info" && <QuestionIcon size={16} />}
-              {variant === "neutral" && <QuestionIcon size={16} />}
-              {confirmText}
-            </>
-          )}
-        </button>
+        {/* ✅ Botões de ação - Mobile First (botões grandes para toque) */}
+        <div className="flex flex-col-reverse sm:flex-row gap-2.5 justify-end">
+          <button
+            onClick={() => {
+              onCancel?.();
+              close();
+            }}
+            disabled={isLoading}
+            className="w-full sm:w-auto px-5 py-3 sm:py-2.5 text-text-secondary hover:text-text transition border border-border rounded-xl hover:border-border-light disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium min-h-[44px]"
+          >
+            {cancelText}
+          </button>
+          <button
+            onClick={() => {
+              onConfirm();
+              close();
+            }}
+            disabled={isLoading || disabled}
+            className={`w-full sm:w-auto px-5 py-3 sm:py-2.5 text-white rounded-xl transition flex items-center justify-center gap-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] ${currentVariant.button}`}
+          >
+            {isLoading ? (
+              <>
+                <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span>Processando...</span>
+              </>
+            ) : (
+              <>
+                {variant === "danger" && <TrashIcon size={16} />}
+                {variant === "success" && <CheckIcon size={16} />}
+                {variant === "warning" && <WarningIcon size={16} />}
+                {variant === "info" && <QuestionIcon size={16} />}
+                {variant === "neutral" && <QuestionIcon size={16} />}
+                {confirmText}
+              </>
+            )}
+          </button>
+        </div>
       </div>
-    </div>
+    ),
+    [
+      title,
+      message,
+      confirmText,
+      cancelText,
+      variant,
+      finalIcon,
+      currentVariant,
+      isLoading,
+      disabled,
+      onConfirm,
+      onCancel,
+    ],
   );
 
   return (
@@ -171,23 +182,29 @@ export const ConfirmPopup: React.FC<ConfirmPopupProps> = ({
       nested
       closeOnDocumentClick={!isLoading && !disabled}
       disabled={disabled}
+      position="center center" // ✅ Centralizar o modal
       contentStyle={{
         borderRadius: "16px",
         padding: "0",
-        maxWidth: "440px",
+        maxWidth: "420px",
         width: "92%",
         backgroundColor: "#1A1A1A",
         border: "1px solid #2A2A2A",
         boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.9)",
-        margin: "16px",
+        margin: "auto", // ✅ Centralizar horizontalmente
+        maxHeight: "90vh",
+        overflowY: "auto",
       }}
       overlayStyle={{
-        background: "rgba(0, 0, 0, 0.75)",
-        backdropFilter: "blur(6px)",
-        WebkitBackdropFilter: "blur(6px)",
+        background: "rgba(0, 0, 0, 0.8)",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
+        display: "flex",
+        alignItems: "center", // ✅ Centralizar verticalmente
+        justifyContent: "center", // ✅ Centralizar horizontalmente
       }}
     >
-      {PopupContent as any}
+      {((close: () => void) => <PopupContent close={close} />) as any}
     </Popup>
   );
 };

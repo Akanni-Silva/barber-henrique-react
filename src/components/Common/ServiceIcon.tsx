@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // src/components/Common/ServiceIcon.tsx
 import React from "react";
 import type { ProductCategory } from "../../types";
@@ -14,7 +15,7 @@ interface ServiceIconProps {
   color?: string;
   showLabel?: boolean;
   labelClassName?: string;
-  variant?: "default" | "rounded" | "circular" | "card";
+  variant?: "default" | "rounded" | "circular" | "card" | "compact";
 }
 
 export const ServiceIcon: React.FC<ServiceIconProps> = ({
@@ -31,13 +32,25 @@ export const ServiceIcon: React.FC<ServiceIconProps> = ({
   const IconComponent = phosphorIcons[iconName as keyof typeof phosphorIcons];
   const categoryLabel = categoryLabels[category] || category;
 
-  // Variantes de container
+  // ✅ Variantes de container otimizadas para mobile
   const variants = {
     default: "",
     rounded: "bg-accent/10 rounded-xl p-2",
-    circular: "bg-accent/10 rounded-full p-2.5",
+    circular: "bg-accent/10 rounded-full p-2",
     card: "bg-accent/10 rounded-2xl p-3 border border-accent/10",
+    compact: "bg-accent/10 rounded-lg p-1.5", // ✅ Nova variante compacta
   };
+
+  // ✅ Tamanhos otimizados para mobile
+  const sizeMap = {
+    small: 16,
+    medium: 20,
+    large: 24,
+    xlarge: 32,
+  };
+
+  // ✅ Tamanho do label baseado no ícone
+  const labelSize = size >= 24 ? "text-xs" : "text-[10px]";
 
   // Fallback caso o ícone não exista
   if (!IconComponent) {
@@ -48,7 +61,7 @@ export const ServiceIcon: React.FC<ServiceIconProps> = ({
         <span style={{ fontSize: size }}>📌</span>
         {showLabel && (
           <span
-            className={`ml-2 text-xs font-medium text-text ${labelClassName}`}
+            className={`ml-1.5 font-medium text-text ${labelSize} ${labelClassName}`}
           >
             {categoryLabel}
           </span>
@@ -64,7 +77,7 @@ export const ServiceIcon: React.FC<ServiceIconProps> = ({
       <IconComponent size={size} color={color} />
       {showLabel && (
         <span
-          className={`ml-2 text-xs font-medium text-text ${labelClassName}`}
+          className={`ml-1.5 font-medium text-text ${labelSize} ${labelClassName}`}
         >
           {categoryLabel}
         </span>

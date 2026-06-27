@@ -17,6 +17,7 @@ import {
   ArrowLeftIcon,
   UsersIcon,
   TrendUpIcon,
+  ClockCounterClockwiseIcon,
 } from "@phosphor-icons/react";
 import { useApi } from "../../hooks/useApi";
 import { Spinner } from "../../components/Common/Spinner";
@@ -145,105 +146,102 @@ export const Clients = () => {
   }
 
   return (
-    <>
-      {/* ✅ Header com navegação */}
-      <div className="flex items-center gap-3 mb-6">
+    <div className="pb-20">
+      {/* ✅ Header Mobile - Navegação */}
+      <div className="flex items-center gap-2 mb-4">
         <Link
           to="/dashboard"
           className="p-2 text-text-muted hover:text-accent transition rounded-xl hover:bg-accent/5"
         >
-          <ArrowLeftIcon size={20} />
+          <ArrowLeftIcon size={18} />
         </Link>
         <div>
-          <h1 className="font-serif text-2xl font-bold text-text">
-            👥 Clientes
-          </h1>
-          <p className="text-text-muted text-sm">
+          <p className="text-text-muted text-xs">
             {total} clientes cadastrados
           </p>
         </div>
       </div>
 
-      {/* ✅ Cards de Estatísticas */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <div className="bg-primary-light rounded-2xl p-4 border border-border/50">
+      {/* ✅ Cards de Estatísticas - Compactos Mobile */}
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        <div className="bg-primary-light rounded-xl p-3 border border-border/50">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-text-muted text-xs font-medium uppercase tracking-wider">
+              <p className="text-text-muted text-[10px] font-medium uppercase tracking-wider">
                 Total
               </p>
-              <p className="text-2xl font-bold text-text">
+              <p className="text-lg font-bold text-text">
                 {stats?.total_clients || 0}
               </p>
             </div>
-            <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center">
-              <UsersIcon size={20} className="text-accent" />
+            <div className="w-8 h-8 bg-accent/10 rounded-lg flex items-center justify-center">
+              <UsersIcon size={16} className="text-accent" />
             </div>
           </div>
         </div>
 
-        <div className="bg-primary-light rounded-2xl p-4 border border-green-500/20">
+        <div className="bg-primary-light rounded-xl p-3 border border-green-500/20">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-text-muted text-xs font-medium uppercase tracking-wider">
+              <p className="text-text-muted text-[10px] font-medium uppercase tracking-wider">
                 Ativos
               </p>
-              <p className="text-2xl font-bold text-green-500">
+              <p className="text-lg font-bold text-green-500">
                 {stats?.active_clients || 0}
               </p>
             </div>
-            <div className="w-10 h-10 bg-green-500/10 rounded-xl flex items-center justify-center">
-              <CheckCircleIcon size={20} className="text-green-500" />
+            <div className="w-8 h-8 bg-green-500/10 rounded-lg flex items-center justify-center">
+              <CheckCircleIcon size={16} className="text-green-500" />
             </div>
           </div>
         </div>
 
-        <div className="bg-primary-light rounded-2xl p-4 border border-accent/20">
+        <div className="bg-primary-light rounded-xl p-3 border border-accent/20">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-text-muted text-xs font-medium uppercase tracking-wider">
+              <p className="text-text-muted text-[10px] font-medium uppercase tracking-wider">
                 Receita
               </p>
-              <p className="text-lg font-bold text-accent">
+              <p className="text-sm font-bold text-accent">
                 {formatPrice(stats?.total_revenue || 0)}
               </p>
             </div>
-            <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center">
-              <MoneyIcon size={20} className="text-accent" />
+            <div className="w-8 h-8 bg-accent/10 rounded-lg flex items-center justify-center">
+              <MoneyIcon size={16} className="text-accent" />
             </div>
           </div>
         </div>
 
-        <div className="bg-primary-light rounded-2xl p-4 border border-blue-500/20">
+        <div className="bg-primary-light rounded-xl p-3 border border-blue-500/20">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-text-muted text-xs font-medium uppercase tracking-wider">
+              <p className="text-text-muted text-[10px] font-medium uppercase tracking-wider">
                 Média
               </p>
-              <p className="text-2xl font-bold text-blue-500">
+              <p className="text-lg font-bold text-blue-500">
                 {stats?.average_appointments_per_client || 0}
               </p>
             </div>
-            <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center">
-              <TrendUpIcon size={20} className="text-blue-500" />
+            <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center">
+              <TrendUpIcon size={16} className="text-blue-500" />
             </div>
           </div>
         </div>
       </div>
 
-      {/* ✅ Barra de Busca */}
-      <div className="flex gap-2 mb-6">
+      {/* ✅ Barra de Busca - Mobile First */}
+      <div className="flex gap-2 mb-4">
         <div className="flex-1 relative">
           <MagnifyingGlassIcon
-            size={20}
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted"
+            size={18}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
           />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Buscar cliente por nome..."
-            className="w-full pl-11 pr-4 py-3 bg-primary-light border border-border/50 rounded-xl text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all"
+            placeholder="Buscar cliente..."
+            className="w-full pl-10 pr-3 py-2.5 bg-primary-light border border-border/50 rounded-xl text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all"
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 handleSearch();
@@ -253,8 +251,8 @@ export const Clients = () => {
         </div>
         <Button
           variant="primary"
-          size="md"
-          icon={<MagnifyingGlassIcon size={18} />}
+          size="sm"
+          icon={<MagnifyingGlassIcon size={16} />}
           onClick={handleSearch}
         >
           Buscar
@@ -262,78 +260,72 @@ export const Clients = () => {
         {searchTerm && (
           <button
             onClick={handleClearSearch}
-            className="p-3 text-text-muted hover:text-accent transition rounded-xl border border-border/50 hover:border-accent/30"
+            className="p-2.5 text-text-muted hover:text-accent transition rounded-xl border border-border/50 hover:border-accent/30 flex-shrink-0"
           >
-            <XIcon size={18} />
+            <XIcon size={16} />
           </button>
         )}
       </div>
 
-      {/* ✅ Lista de Clientes */}
+      {/* ✅ Lista de Clientes - Cards Mobile */}
       {clients.length === 0 ? (
-        <div className="text-center py-16 bg-primary-light rounded-2xl border border-border/50">
-          <div className="text-6xl mb-4">👤</div>
-          <h3 className="font-serif text-xl font-bold text-text mb-2">
+        <div className="text-center py-12 bg-primary-light rounded-xl border border-border/50">
+          <div className="text-4xl mb-3">👤</div>
+          <h3 className="font-serif text-lg font-bold text-text mb-1">
             Nenhum cliente encontrado
           </h3>
-          <p className="text-text-muted">
+          <p className="text-text-muted text-sm">
             {searchTerm
               ? "Nenhum cliente com este nome"
               : "Ainda não há clientes cadastrados"}
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {clients.map((client) => (
             <div
               key={client.id}
-              className="bg-primary-light rounded-2xl p-4 border border-border/50 hover:border-accent/20 transition-all"
+              className="bg-primary-light rounded-xl p-3 border border-border/50 hover:border-accent/20 transition-all"
             >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex flex-col gap-2">
                 {/* Cliente */}
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <UserIcon size={18} className="text-accent" />
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-accent/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <UserIcon size={14} className="text-accent" />
                   </div>
-                  <div className="min-w-0">
-                    <p className="font-semibold text-text truncate">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-text text-sm truncate">
                       {client.name}
                     </p>
-                    <p className="text-text-muted text-xs flex items-center gap-1">
-                      <PhoneIcon size={12} />
+                    <p className="text-text-muted text-xs flex items-center gap-0.5">
+                      <PhoneIcon size={10} />
                       {client.phone}
                     </p>
                   </div>
                 </div>
 
-                {/* Stats */}
-                <div className="flex flex-wrap items-center gap-4 text-sm">
-                  <div className="flex items-center gap-1 text-text-muted">
-                    <CalendarIcon size={14} />
-                    <span className="text-xs">
-                      {client.last_visit
-                        ? formatDate(client.last_visit)
-                        : "Sem visitas"}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1 text-text-muted">
-                    <UsersIcon size={14} />
-                    <span className="text-xs">
-                      {client.total_appointments} agend.
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1 text-accent font-medium">
-                    <MoneyIcon size={14} />
-                    <span className="text-xs">
-                      {formatPrice(client.total_spent)}
-                    </span>
-                  </div>
+                {/* Stats compactos */}
+                <div className="flex flex-wrap items-center gap-3 text-xs">
+                  <span className="flex items-center gap-0.5 text-text-muted">
+                    <CalendarIcon size={12} />
+                    {client.last_visit
+                      ? formatDate(client.last_visit)
+                      : "Sem visitas"}
+                  </span>
+                  <span className="flex items-center gap-0.5 text-text-muted">
+                    <UsersIcon size={12} />
+                    {client.total_appointments}
+                  </span>
+                  <span className="flex items-center gap-0.5 text-accent font-medium">
+                    <MoneyIcon size={12} />
+                    {formatPrice(client.total_spent)}
+                  </span>
                 </div>
 
-                {/* Ações */}
-                <div className="flex items-center gap-2">
+                {/* ✅ Ações - Com Histórico */}
+                <div className="flex items-center justify-end gap-1.5 pt-1.5 border-t border-border/30">
                   <span
-                    className={`px-2 py-1 rounded-full text-[10px] font-medium ${
+                    className={`px-2 py-0.5 rounded-full text-[8px] font-medium ${
                       client.is_active
                         ? "bg-green-500/10 text-green-500 border-green-500/30 border"
                         : "bg-red-500/10 text-red-500 border-red-500/30 border"
@@ -342,25 +334,32 @@ export const Clients = () => {
                     {client.is_active ? "Ativo" : "Inativo"}
                   </span>
 
+                  {/* ✅ Botão Histórico */}
+                  <Link
+                    to={`/clientes/${client.id}/historico`}
+                    className="p-2 bg-accent/10 text-accent rounded-lg hover:bg-accent/20 transition flex items-center gap-1 text-xs"
+                  >
+                    <ClockCounterClockwiseIcon size={14} />
+                    <span className="hidden xs:inline">Histórico</span>
+                  </Link>
+
                   <button
                     onClick={() => {
                       setSelectedClient(client);
                       setShowDetails(true);
                     }}
-                    className="p-1.5 bg-accent/10 text-accent rounded-lg hover:bg-accent/20 transition"
-                    title="Ver detalhes"
+                    className="p-2 bg-accent/10 text-accent rounded-lg hover:bg-accent/20 transition flex items-center gap-1 text-xs"
                   >
                     <EyeIcon size={14} />
+                    <span className="hidden xs:inline">Detalhes</span>
                   </button>
 
                   {client.is_active ? (
                     <ConfirmPopup
                       trigger={
-                        <button
-                          className="p-1.5 bg-red-500/20 text-red-500 rounded-lg hover:bg-red-500/30 transition"
-                          title="Desativar"
-                        >
+                        <button className="p-2 bg-red-500/20 text-red-500 rounded-lg hover:bg-red-500/30 transition flex items-center gap-1 text-xs">
                           <XCircleIcon size={14} />
+                          <span className="hidden xs:inline">Desativar</span>
                         </button>
                       }
                       onConfirm={() => handleDeactivate(client.id)}
@@ -374,10 +373,10 @@ export const Clients = () => {
                   ) : (
                     <button
                       onClick={() => handleActivate(client.id)}
-                      className="p-1.5 bg-green-500/20 text-green-500 rounded-lg hover:bg-green-500/30 transition"
-                      title="Ativar"
+                      className="p-2 bg-green-500/20 text-green-500 rounded-lg hover:bg-green-500/30 transition flex items-center gap-1 text-xs"
                     >
                       <CheckCircleIcon size={14} />
+                      <span className="hidden xs:inline">Ativar</span>
                     </button>
                   )}
                 </div>
@@ -387,28 +386,28 @@ export const Clients = () => {
         </div>
       )}
 
-      {/* ✅ Paginação */}
+      {/* ✅ Paginação - Mobile First */}
       {total > limit && (
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t border-border/50 mt-6">
-          <p className="text-text-muted text-sm">
-            Mostrando {(page - 1) * limit + 1} - {Math.min(page * limit, total)}{" "}
-            de {total}
+        <div className="flex flex-col items-center gap-2 pt-3 border-t border-border/50 mt-4">
+          <p className="text-text-muted text-xs">
+            {(page - 1) * limit + 1} - {Math.min(page * limit, total)} de{" "}
+            {total}
           </p>
           <div className="flex gap-2">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="px-4 py-2 border border-border/50 rounded-xl text-text-muted hover:text-text hover:border-accent/30 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              className="px-4 py-2 border border-border/50 rounded-xl text-text-muted hover:text-text hover:border-accent/30 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm flex-1"
             >
               Anterior
             </button>
-            <span className="px-4 py-2 bg-accent/10 text-accent rounded-xl text-sm font-medium">
+            <span className="px-4 py-2 bg-accent/10 text-accent rounded-xl text-sm font-medium min-w-[40px] text-center">
               {page}
             </span>
             <button
               onClick={() => setPage((p) => p + 1)}
               disabled={page * limit >= total}
-              className="px-4 py-2 border border-border/50 rounded-xl text-text-muted hover:text-text hover:border-accent/30 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              className="px-4 py-2 border border-border/50 rounded-xl text-text-muted hover:text-text hover:border-accent/30 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm flex-1"
             >
               Próxima
             </button>
@@ -416,69 +415,69 @@ export const Clients = () => {
         </div>
       )}
 
-      {/* ✅ Modal de Detalhes */}
+      {/* ✅ Modal de Detalhes - Mobile First (Centralizado) */}
       {showDetails && selectedClient && (
-        <div className="fixed inset-0 bg-black/80 flex items-end sm:items-center justify-center z-50 p-4">
-          <div className="bg-primary-light rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-slideUp">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-primary-light rounded-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto animate-fadeIn">
             <div className="sticky top-0 bg-primary-light border-b border-border/50 p-4 flex justify-between items-center z-10">
               <h3 className="font-serif text-lg font-bold text-text">
                 Detalhes do Cliente
               </h3>
               <button
                 onClick={() => setShowDetails(false)}
-                className="p-2 text-text-muted hover:text-text transition rounded-xl hover:bg-primary"
+                className="p-2 text-text-muted hover:text-text transition rounded-lg hover:bg-primary"
               >
                 <XIcon size={20} />
               </button>
             </div>
 
-            <div className="p-5 space-y-4">
+            <div className="p-4 space-y-4">
               {/* Perfil */}
-              <div className="flex items-center gap-4 p-4 bg-primary/50 rounded-xl">
-                <div className="w-16 h-16 bg-accent/10 rounded-xl flex items-center justify-center">
-                  <UserIcon size={28} className="text-accent" />
+              <div className="flex items-center gap-3 p-3 bg-primary/50 rounded-xl">
+                <div className="w-12 h-12 bg-accent/10 rounded-xl flex items-center justify-center">
+                  <UserIcon size={24} className="text-accent" />
                 </div>
                 <div>
-                  <p className="font-serif text-lg font-bold text-text">
+                  <p className="font-serif text-base font-bold text-text">
                     {selectedClient.name}
                   </p>
-                  <p className="text-text-muted text-sm flex items-center gap-1">
-                    <PhoneIcon size={14} /> {selectedClient.phone}
+                  <p className="text-text-muted text-xs flex items-center gap-0.5">
+                    <PhoneIcon size={12} /> {selectedClient.phone}
                   </p>
                 </div>
               </div>
 
               {/* Stats Grid */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 bg-primary/50 rounded-xl">
-                  <p className="text-text-muted text-xs font-medium uppercase tracking-wider">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-2.5 bg-primary/50 rounded-lg">
+                  <p className="text-text-muted text-[10px] font-medium uppercase tracking-wider">
                     Agendamentos
                   </p>
-                  <p className="text-text font-bold text-lg">
+                  <p className="text-text font-bold text-base">
                     {selectedClient.total_appointments}
                   </p>
                 </div>
-                <div className="p-3 bg-primary/50 rounded-xl">
-                  <p className="text-text-muted text-xs font-medium uppercase tracking-wider">
+                <div className="p-2.5 bg-primary/50 rounded-lg">
+                  <p className="text-text-muted text-[10px] font-medium uppercase tracking-wider">
                     Gasto Total
                   </p>
-                  <p className="text-accent font-bold text-lg">
+                  <p className="text-accent font-bold text-base">
                     {formatPrice(selectedClient.total_spent)}
                   </p>
                 </div>
-                <div className="p-3 bg-primary/50 rounded-xl col-span-2">
-                  <p className="text-text-muted text-xs font-medium uppercase tracking-wider">
+                <div className="p-2.5 bg-primary/50 rounded-lg col-span-2">
+                  <p className="text-text-muted text-[10px] font-medium uppercase tracking-wider">
                     Última Visita
                   </p>
-                  <p className="text-text">
+                  <p className="text-text text-sm">
                     {selectedClient.last_visit
                       ? formatDate(selectedClient.last_visit)
                       : "—"}
                   </p>
                 </div>
                 {selectedClient.notes && (
-                  <div className="p-3 bg-primary/50 rounded-xl col-span-2">
-                    <p className="text-text-muted text-xs font-medium uppercase tracking-wider">
+                  <div className="p-2.5 bg-primary/50 rounded-lg col-span-2">
+                    <p className="text-text-muted text-[10px] font-medium uppercase tracking-wider">
                       Observações
                     </p>
                     <p className="text-text text-sm">{selectedClient.notes}</p>
@@ -486,23 +485,25 @@ export const Clients = () => {
                 )}
               </div>
 
-              {/* Ações */}
-              <div className="flex flex-wrap gap-2 pt-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  icon={<CalendarIcon size={16} />}
-                  onClick={() => setShowDetails(false)}
+              {/* ✅ Ações - Com Histórico */}
+              <div className="flex flex-wrap gap-2 pt-1">
+                {/* ✅ Botão Histórico */}
+                <Link
+                  to={`/clientes/${selectedClient.id}/historico`}
+                  className="flex-1 min-w-[80px] px-3 py-2.5 bg-accent/10 text-accent rounded-lg hover:bg-accent/20 transition flex items-center justify-center gap-1.5 text-xs font-medium"
                 >
-                  Ver Histórico
-                </Button>
+                  <ClockCounterClockwiseIcon size={16} />
+                  Histórico
+                </Link>
+
                 {selectedClient.is_active ? (
                   <ConfirmPopup
                     trigger={
                       <Button
                         variant="danger"
                         size="sm"
-                        icon={<XCircleIcon size={16} />}
+                        icon={<XCircleIcon size={14} />}
+                        className="flex-1 min-w-[80px]"
                       >
                         Desativar
                       </Button>
@@ -522,11 +523,12 @@ export const Clients = () => {
                   <Button
                     variant="primary"
                     size="sm"
-                    icon={<CheckCircleIcon size={16} />}
+                    icon={<CheckCircleIcon size={14} />}
                     onClick={() => {
                       handleActivate(selectedClient.id);
                       setShowDetails(false);
                     }}
+                    className="flex-1 min-w-[80px]"
                   >
                     Ativar
                   </Button>
@@ -535,6 +537,7 @@ export const Clients = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowDetails(false)}
+                  className="flex-1 min-w-[80px]"
                 >
                   Fechar
                 </Button>
@@ -543,6 +546,6 @@ export const Clients = () => {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 };

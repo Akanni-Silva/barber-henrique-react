@@ -1,0 +1,18 @@
+/* src/styles/globals.css */
+
+/* ✅ Safe Area para dispositivos com notch */
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+  padding-top: constant(safe-area-inset-top);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: constant(safe-area-inset-bottom);
+}
+
+/* ✅ Padding para o conteúdo (evita ficar atrás do bottom nav) */
+.pb-safe {
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+  padding-bottom: calc(4rem + constant(safe-area-inset-bottom));
+}

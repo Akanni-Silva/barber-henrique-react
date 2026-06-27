@@ -12,6 +12,7 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   onClear?: () => void;
   containerClassName?: string;
   labelClassName?: string;
+  inputSize?: "sm" | "md" | "lg";
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
@@ -28,7 +29,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       clearable = false,
       onClear,
       containerClassName = "",
+      labelClassName = "",
       className = "",
+      inputSize = "md",
       value,
       onChange,
       ...props
@@ -43,11 +46,30 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const hasValue =
       value !== undefined && value !== null && String(value).length > 0;
 
+    // ✅ Tamanhos otimizados para mobile (touch-friendly)
+    const sizeClasses = {
+      sm: "px-3 py-2 text-sm rounded-lg",
+      md: "px-4 py-3 text-base rounded-xl",
+      lg: "px-5 py-3.5 text-base rounded-xl",
+    };
+
+    // ✅ Padding para ícones baseado no tamanho
+    const iconPadding = {
+      sm: "pl-9",
+      md: "pl-11",
+      lg: "pl-12",
+    };
+
+    const passwordPadding = {
+      sm: "pr-9",
+      md: "pr-11",
+      lg: "pr-12",
+    };
+
     const handleClear = () => {
       if (onClear) {
         onClear();
       }
-      // Se não tiver onClear, podemos simular um evento de change com valor vazio
       if (onChange) {
         const event = {
           target: { value: "" },
@@ -59,14 +81,19 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className={`w-full ${containerClassName}`}>
         {label && (
-          <label className="block text-sm font-medium text-text-secondary mb-1.5">
+          <label
+            htmlFor={props.id}
+            className={`block text-sm font-medium text-text-secondary mb-1.5 ${labelClassName}`}
+          >
             {label}
             {required && <span className="text-red-500 ml-0.5">*</span>}
           </label>
         )}
 
         <div
-          className={`relative group ${isFocused ? "ring-2 ring-accent/50" : ""}`}
+          className={`relative group rounded-xl transition-all duration-200 ${
+            isFocused ? "ring-2 ring-accent/50" : ""
+          }`}
         >
           {icon && iconPosition === "left" && (
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -92,27 +119,26 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
             className={`
-              w-full px-4 py-3 
-              bg-primary border rounded-xl
+              w-full bg-primary border rounded-xl
               text-text placeholder:text-text-muted
               focus:outline-none
               transition-all duration-200
               disabled:opacity-50 disabled:cursor-not-allowed
-              ${icon && iconPosition === "left" ? "pl-11" : ""}
-              ${isPassword || (clearable && hasValue) ? "pr-11" : ""}
+              ${sizeClasses[inputSize]}
+              ${icon && iconPosition === "left" ? iconPadding[inputSize] : ""}
+              ${isPassword || (clearable && hasValue) ? passwordPadding[inputSize] : ""}
               ${
                 error
                   ? "border-red-500 focus:ring-red-500/50"
                   : isFocused
                     ? "border-accent"
-                    : "border-border hover:border-border-light"
+                    : "border-border/50 hover:border-border-light"
               }
               ${className}
             `}
             {...props}
           />
 
-          {/* ✅ Botão de limpar */}
           {clearable && hasValue && !isPassword && !disabled && (
             <button
               type="button"
@@ -124,7 +150,6 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             </button>
           )}
 
-          {/* ✅ Botão de mostrar senha */}
           {isPassword && (
             <button
               type="button"

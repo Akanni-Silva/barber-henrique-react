@@ -20,10 +20,10 @@ import {
   PhoneIcon,
   UserIcon,
   ClockIcon,
-  
   ArrowRightIcon,
   CaretCircleLeftIcon,
   CaretCircleRightIcon,
+  ScissorsIcon,
 } from "@phosphor-icons/react";
 import { useAuthRedirect } from "../../hooks/useAuthRedirect";
 
@@ -305,7 +305,7 @@ export const Schedule = () => {
       );
 
       setSuccess(true);
-      toast.success("Agendamento realizado com sucesso!");
+      toast.success("✅ Agendamento realizado com sucesso!");
 
       setAvailableSlots((prev) => prev.filter((slot) => slot !== selectedTime));
       setSelectedTime("");
@@ -323,15 +323,9 @@ export const Schedule = () => {
     } catch (error: any) {
       const message =
         error.response?.data?.message || "Erro ao realizar agendamento";
-      toast.error(`${message}`);
+      toast.error(`❌ ${message}`);
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const scrollToSection = (ref: React.RefObject<HTMLDivElement>) => {
-    if (ref.current) {
-      ref.current.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   };
 
@@ -402,19 +396,42 @@ export const Schedule = () => {
   ];
 
   return (
-    <>
+    <div className="pb-20">
+      {/* ✅ Header da Página */}
+      <div className="flex items-center gap-2 mb-4">
+        <div className="flex-1">
+          <h1 className="font-serif text-xl font-bold text-text">Agendar</h1>
+          <p className="text-text-muted text-xs">
+            {step === 1 && "Escolha o serviço desejado"}
+            {step === 2 && "Selecione data e horário"}
+            {step === 3 && "Preencha seus dados"}
+          </p>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span
+            className={`w-2 h-2 rounded-full ${step >= 1 ? "bg-accent" : "bg-border"}`}
+          />
+          <span
+            className={`w-2 h-2 rounded-full ${step >= 2 ? "bg-accent" : "bg-border"}`}
+          />
+          <span
+            className={`w-2 h-2 rounded-full ${step >= 3 ? "bg-accent" : "bg-border"}`}
+          />
+        </div>
+      </div>
+
       {success ? (
-        <section className="bg-primary-light rounded-2xl text-center py-12 border border-border/50">
-          <div className="w-16 h-16 bg-green-500/10 rounded-2xl flex items-center justify-center mx-auto mb-3 border-2 border-green-500/30">
-            <CheckIcon size={32} className="text-green-500" weight="bold" />
+        <section className="bg-primary-light rounded-2xl text-center py-16 border border-border/50">
+          <div className="w-20 h-20 bg-green-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border-2 border-green-500/30">
+            <CheckIcon size={36} className="text-green-500" weight="bold" />
           </div>
-          <h2 className="font-serif text-xl font-bold text-text mb-1">
+          <h2 className="font-serif text-xl font-bold text-text mb-2">
             Agendamento Confirmado! ✅
           </h2>
-          <p className="text-text-muted text-sm mb-4">
+          <p className="text-text-muted text-sm max-w-xs mx-auto mb-6">
             Você receberá a confirmação no WhatsApp em instantes.
           </p>
-          <Button variant="primary" size="sm" onClick={() => navigate("/")}>
+          <Button variant="primary" size="md" onClick={() => navigate("/")}>
             Voltar para Home
           </Button>
         </section>
@@ -422,23 +439,28 @@ export const Schedule = () => {
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* ✅ Step 1: Seleção de Serviço */}
           {step === 1 && (
-            <div ref={serviceRef} className="space-y-3 animate-fadeIn">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 bg-accent rounded-full flex items-center justify-center text-primary text-[10px] font-bold">
+            <div ref={serviceRef} className="space-y-4 animate-fadeIn">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-accent rounded-full flex items-center justify-center text-primary text-xs font-bold flex-shrink-0">
                   1
                 </div>
-                <span className="text-sm font-medium text-text">
-                  Escolha o serviço
-                </span>
+                <div>
+                  <span className="text-sm font-medium text-text">
+                    Escolha o serviço
+                  </span>
+                  <p className="text-text-muted text-xs">
+                    Selecione uma das opções abaixo
+                  </p>
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 {services.map((service) => (
                   <button
                     key={service.id}
                     type="button"
                     onClick={() => handleServiceSelect(service.id)}
-                    className={`p-3 rounded-xl border-2 transition-all duration-200 text-center ${
+                    className={`p-4 rounded-2xl border-2 transition-all duration-200 text-center ${
                       selectedService === service.id
                         ? "border-accent bg-accent/10 ring-2 ring-accent/20 shadow-glow-sm"
                         : "border-border/50 hover:border-border-light bg-primary-light"
@@ -446,13 +468,13 @@ export const Schedule = () => {
                     aria-pressed={selectedService === service.id}
                   >
                     <div className="flex flex-col items-center">
-                      <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center mb-1.5">
-                        <ServiceIcon category={service.category} size={20} />
+                      <div className="w-12 h-12 bg-accent/10 rounded-xl flex items-center justify-center mb-2">
+                        <ServiceIcon category={service.category} size={22} />
                       </div>
-                      <h4 className="font-semibold text-text text-xs leading-tight">
+                      <h4 className="font-semibold text-text text-sm leading-tight">
                         {service.name}
                       </h4>
-                      <p className="text-accent font-bold text-xs mt-0.5">
+                      <p className="text-accent font-bold text-sm mt-1">
                         {formatPrice(service.price)}
                       </p>
                       <p className="text-text-muted text-[10px] flex items-center gap-0.5">
@@ -468,53 +490,58 @@ export const Schedule = () => {
 
           {/* ✅ Step 2: Data e Horário com Calendário */}
           {step === 2 && (
-            <div ref={dateRef} className="space-y-3 animate-fadeIn">
-              <div className="flex items-center gap-2">
+            <div ref={dateRef} className="space-y-4 animate-fadeIn">
+              <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => handleBackToStep(1)}
-                  className="text-text-muted hover:text-accent transition p-1"
+                  className="p-1.5 text-text-muted hover:text-accent transition rounded-lg hover:bg-accent/10"
                 >
-                  <CaretCircleLeftIcon size={16} />
+                  <CaretCircleLeftIcon size={20} />
                 </button>
-                <div className="w-7 h-7 bg-accent rounded-full flex items-center justify-center text-primary text-[10px] font-bold">
+                <div className="w-8 h-8 bg-accent rounded-full flex items-center justify-center text-primary text-xs font-bold flex-shrink-0">
                   2
                 </div>
-                <span className="text-sm font-medium text-text">
-                  Data e horário
-                </span>
+                <div>
+                  <span className="text-sm font-medium text-text">
+                    Data e horário
+                  </span>
+                  <p className="text-text-muted text-xs">
+                    Escolha quando deseja agendar
+                  </p>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-3">
+              <div className="grid grid-cols-1 gap-4">
                 {/* Calendário */}
-                <div className="bg-primary-light rounded-xl p-3 border border-border/50">
-                  <div className="flex items-center justify-between mb-3">
+                <div className="bg-primary-light rounded-2xl p-4 border border-border/50">
+                  <div className="flex items-center justify-between mb-4">
                     <button
                       type="button"
                       onClick={goToPreviousMonth}
-                      className="p-1.5 text-text-muted hover:text-accent transition rounded-lg hover:bg-accent/10"
+                      className="p-2 text-text-muted hover:text-accent transition rounded-xl hover:bg-accent/10"
                     >
-                      <CaretCircleLeftIcon size={18} />
+                      <CaretCircleLeftIcon size={20} />
                     </button>
-                    <span className="font-semibold text-text text-sm">
+                    <span className="font-semibold text-text text-base">
                       {monthNames[currentMonth.getMonth()]}{" "}
                       {currentMonth.getFullYear()}
                     </span>
                     <button
                       type="button"
                       onClick={goToNextMonth}
-                      className="p-1.5 text-text-muted hover:text-accent transition rounded-lg hover:bg-accent/10"
+                      className="p-2 text-text-muted hover:text-accent transition rounded-xl hover:bg-accent/10"
                     >
-                      <CaretCircleRightIcon size={18} />
+                      <CaretCircleRightIcon size={20} />
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-7 gap-0.5 text-center">
+                  <div className="grid grid-cols-7 gap-1 text-center">
                     {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map(
                       (day) => (
                         <span
                           key={day}
-                          className="text-text-muted text-[10px] font-medium py-1"
+                          className="text-text-muted text-[10px] font-medium py-1.5"
                         >
                           {day}
                         </span>
@@ -532,7 +559,7 @@ export const Schedule = () => {
                           type="button"
                           onClick={() => isAvailable && handleDaySelect(day)}
                           disabled={!isAvailable}
-                          className={`py-1.5 rounded-lg text-xs transition-all ${
+                          className={`py-2 rounded-xl text-sm transition-all ${
                             !isAvailable
                               ? "text-text-muted/30 cursor-not-allowed"
                               : isSelectedDay
@@ -550,29 +577,34 @@ export const Schedule = () => {
                     })}
                   </div>
 
-                  <div className="flex items-center justify-center gap-3 mt-2 text-[10px] text-text-muted">
+                  <div className="flex items-center justify-center gap-4 mt-3 text-[10px] text-text-muted">
                     <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 bg-accent rounded-full" />
+                      <div className="w-2.5 h-2.5 bg-accent rounded-full" />
                       <span>Selecionado</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 border border-accent/50 rounded-full" />
+                      <div className="w-2.5 h-2.5 border border-accent/50 rounded-full" />
                       <span>Hoje</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 bg-primary-light border border-border/50 rounded-full" />
+                      <div className="w-2.5 h-2.5 bg-primary-light border border-border/50 rounded-full" />
                       <span>Disponível</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Horários Disponíveis */}
-                <div className="bg-primary-light rounded-xl p-3 border border-border/50">
+                <div className="bg-primary-light rounded-2xl p-4 border border-border/50">
                   <label className="block text-xs font-medium text-text-secondary mb-2">
                     {selectedDate ? (
                       <>
                         Horários para{" "}
-                        {new Date(selectedDate).toLocaleDateString("pt-BR")}
+                        <span className="text-accent font-semibold">
+                          {new Date(selectedDate).toLocaleDateString("pt-BR", {
+                            day: "2-digit",
+                            month: "long",
+                          })}
+                        </span>
                       </>
                     ) : (
                       "Selecione uma data"
@@ -580,14 +612,15 @@ export const Schedule = () => {
                   </label>
 
                   {loadingSlots ? (
-                    <div className="flex items-center justify-center py-4 bg-primary rounded-xl border border-border/50">
-                      <Spinner color="#C9A84C" size={8} />
-                      <span className="text-text-muted text-xs ml-2">
-                        Carregando...
+                    <div className="flex items-center justify-center py-6 bg-primary rounded-xl border border-border/50">
+                      <Spinner color="#C9A84C" size={10} />
+                      <span className="text-text-muted text-xs ml-3">
+                        Carregando horários...
                       </span>
                     </div>
                   ) : availableSlots.length === 0 ? (
-                    <div className="text-center py-4 bg-primary rounded-xl border border-border/50">
+                    <div className="text-center py-6 bg-primary rounded-xl border border-border/50">
+                      <div className="text-3xl mb-2">🕐</div>
                       <p className="text-text-muted text-xs">
                         {selectedDate
                           ? "Nenhum horário disponível"
@@ -600,27 +633,27 @@ export const Schedule = () => {
                       </p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-4 gap-1.5 max-h-32 overflow-y-auto p-0.5">
-                      {availableSlots.map((slot) => (
-                        <button
-                          key={slot}
-                          type="button"
-                          onClick={() => setSelectedTime(slot)}
-                          className={`py-1.5 rounded-lg text-xs font-medium transition border ${
-                            selectedTime === slot
-                              ? "bg-accent text-primary border-accent shadow-glow-sm"
-                              : "bg-primary border-border/50 text-text hover:border-accent/30 hover:bg-accent/5"
-                          }`}
-                        >
-                          {slot}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {availableSlots.length > 0 && (
-                    <p className="text-text-muted text-[10px] mt-1.5">
-                      {availableSlots.length} horário(s) disponível(is)
-                    </p>
+                    <>
+                      <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto p-1">
+                        {availableSlots.map((slot) => (
+                          <button
+                            key={slot}
+                            type="button"
+                            onClick={() => setSelectedTime(slot)}
+                            className={`py-2 rounded-xl text-sm font-medium transition border ${
+                              selectedTime === slot
+                                ? "bg-accent text-primary border-accent shadow-glow-sm scale-[0.97]"
+                                : "bg-primary border-border/50 text-text hover:border-accent/30 hover:bg-accent/5"
+                            }`}
+                          >
+                            {slot}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-text-muted text-[10px] mt-2">
+                        {availableSlots.length} horário(s) disponível(is)
+                      </p>
+                    </>
                   )}
                 </div>
               </div>
@@ -629,26 +662,31 @@ export const Schedule = () => {
 
           {/* ✅ Step 3: Dados do Cliente */}
           {step === 3 && (
-            <div ref={clientRef} className="space-y-3 animate-fadeIn">
-              <div className="flex items-center gap-2">
+            <div ref={clientRef} className="space-y-4 animate-fadeIn">
+              <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => handleBackToStep(2)}
-                  className="text-text-muted hover:text-accent transition p-1"
+                  className="p-1.5 text-text-muted hover:text-accent transition rounded-lg hover:bg-accent/10"
                 >
-                  <CaretCircleLeftIcon size={16} />
+                  <CaretCircleLeftIcon size={20} />
                 </button>
-                <div className="w-7 h-7 bg-accent rounded-full flex items-center justify-center text-primary text-[10px] font-bold">
+                <div className="w-8 h-8 bg-accent rounded-full flex items-center justify-center text-primary text-xs font-bold flex-shrink-0">
                   3
                 </div>
-                <span className="text-sm font-medium text-text">
-                  Seus dados
-                </span>
+                <div>
+                  <span className="text-sm font-medium text-text">
+                    Seus dados
+                  </span>
+                  <p className="text-text-muted text-xs">
+                    Preencha suas informações de contato
+                  </p>
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <div className="bg-primary-light rounded-xl p-3 border border-border/50">
-                  <div className="bg-primary/50 rounded-lg p-0.5">
+              <div className="space-y-3">
+                <div className="bg-primary-light rounded-2xl p-4 border border-border/50">
+                  <div className="bg-primary/50 rounded-xl p-0.5">
                     <Input
                       label="Nome Completo"
                       placeholder="Digite seu nome"
@@ -661,12 +699,13 @@ export const Schedule = () => {
                       autoComplete="name"
                       className="bg-transparent border-0 focus:ring-0 text-sm"
                       labelClassName="text-xs"
+                      containerClassName="[&_input]:py-2.5 [&_input]:px-3 [&_input]:pl-10"
                     />
                   </div>
                 </div>
 
-                <div className="bg-primary-light rounded-xl p-3 border border-border/50">
-                  <div className="bg-primary/50 rounded-lg p-0.5">
+                <div className="bg-primary-light rounded-2xl p-4 border border-border/50">
+                  <div className="bg-primary/50 rounded-xl p-0.5">
                     <Input
                       label="Telefone"
                       type="tel"
@@ -681,12 +720,13 @@ export const Schedule = () => {
                       autoComplete="tel"
                       className="bg-transparent border-0 focus:ring-0 text-sm"
                       labelClassName="text-xs"
+                      containerClassName="[&_input]:py-2.5 [&_input]:px-3 [&_input]:pl-10"
                     />
                   </div>
                 </div>
 
-                <div className="bg-primary-light rounded-xl p-3 border border-border/50">
-                  <div className="bg-primary/50 rounded-lg p-0.5">
+                <div className="bg-primary-light rounded-2xl p-4 border border-border/50">
+                  <div className="bg-primary/50 rounded-xl p-0.5">
                     <Input
                       label="Observações (opcional)"
                       placeholder="Alguma observação sobre o serviço..."
@@ -695,6 +735,7 @@ export const Schedule = () => {
                       disabled={submitting}
                       className="bg-transparent border-0 focus:ring-0 text-sm"
                       labelClassName="text-xs"
+                      containerClassName="[&_input]:py-2.5 [&_input]:px-3"
                     />
                   </div>
                 </div>
@@ -704,15 +745,17 @@ export const Schedule = () => {
 
           {/* ✅ Resumo do Agendamento */}
           {selectedServiceObj && step >= 2 && (
-            <section className="bg-primary-light rounded-xl p-3 border border-accent/20">
-              <h3 className="font-semibold text-text text-xs mb-2 flex items-center gap-1.5">
-                <CalendarIcon size={14} className="text-accent" />
-                Resumo
+            <section className="bg-primary-light rounded-2xl p-4 border border-accent/20">
+              <h3 className="font-semibold text-text text-sm mb-3 flex items-center gap-2">
+                <CalendarIcon size={16} className="text-accent" />
+                Resumo do Agendamento
               </h3>
-              <div className="space-y-1 text-xs">
+              <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-text-muted">Serviço:</span>
-                  <span className="text-text">{selectedServiceObj.name}</span>
+                  <span className="text-text font-medium">
+                    {selectedServiceObj.name}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-text-muted">Preço:</span>
@@ -727,17 +770,23 @@ export const Schedule = () => {
                   </span>
                 </div>
                 {selectedDate && (
-                  <div className="flex justify-between">
+                  <div className="flex justify-between border-t border-border/30 pt-2 mt-2">
                     <span className="text-text-muted">Data:</span>
-                    <span className="text-text">
-                      {new Date(selectedDate).toLocaleDateString("pt-BR")}
+                    <span className="text-text font-medium">
+                      {new Date(selectedDate).toLocaleDateString("pt-BR", {
+                        day: "2-digit",
+                        month: "long",
+                        year: "numeric",
+                      })}
                     </span>
                   </div>
                 )}
                 {selectedTime && (
                   <div className="flex justify-between">
                     <span className="text-text-muted">Horário:</span>
-                    <span className="text-text">{selectedTime}</span>
+                    <span className="text-text font-medium">
+                      {selectedTime}
+                    </span>
                   </div>
                 )}
               </div>
@@ -749,26 +798,29 @@ export const Schedule = () => {
             <Button
               type="submit"
               variant="primary"
-              size="md"
+              size="lg"
               fullWidth
-              icon={<CalendarIcon size={16} />}
+              icon={<CalendarIcon size={18} />}
               iconPosition="left"
               loading={submitting}
               disabled={
                 submitting || !selectedService || !selectedDate || !selectedTime
               }
+              className="text-base"
             >
               Solicitar Agendamento
             </Button>
           )}
 
           {step >= 3 && (
-            <p className="text-text-muted text-[10px] text-center">
+            <p className="text-text-muted text-xs text-center">
               Ao solicitar, você receberá a confirmação via WhatsApp.
             </p>
           )}
         </form>
       )}
-    </>
+    </div>
   );
 };
+
+export default Schedule;

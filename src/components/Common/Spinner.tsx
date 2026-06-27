@@ -16,6 +16,10 @@ interface SpinnerProps {
   withLogo?: boolean;
   text?: string;
   textClassName?: string;
+  /**
+   * Tamanho do spinner em mobile (padrão: 'md')
+   */
+  mobileSize?: "sm" | "md" | "lg";
 }
 
 export const Spinner = ({
@@ -27,13 +31,45 @@ export const Spinner = ({
   withLogo = false,
   text,
   textClassName = "",
+  mobileSize = "md",
 }: SpinnerProps) => {
   if (!loading) return null;
 
+  // ✅ Tamanhos otimizados para mobile
+  const sizeMap = {
+    sm: {
+      spinner: size * 1.5,
+      logo: 12,
+      container: "w-12 h-12",
+      border: "w-18 h-18",
+      innerBorder: "w-14 h-14",
+      text: "text-xs",
+    },
+    md: {
+      spinner: size * 2,
+      logo: 16,
+      container: "w-16 h-16",
+      border: "w-24 h-24",
+      innerBorder: "w-20 h-20",
+      text: "text-sm",
+    },
+    lg: {
+      spinner: size * 2.5,
+      logo: 20,
+      container: "w-20 h-20",
+      border: "w-28 h-28",
+      innerBorder: "w-24 h-24",
+      text: "text-base",
+    },
+  };
+
+  const currentSize = sizeMap[mobileSize];
+
   const renderSpinner = () => {
+    const spinnerSize = currentSize.spinner;
     switch (variant) {
       case "clip":
-        return <ClipLoader color={color} size={size * 2.5} />;
+        return <ClipLoader color={color} size={spinnerSize} />;
       case "pulse":
         return <PulseLoader color={color} size={size} />;
       case "beat":
@@ -45,7 +81,7 @@ export const Spinner = ({
 
   return (
     <div
-      className={`flex flex-col items-center justify-center p-4 ${className}`}
+      className={`flex flex-col items-center justify-center p-3 sm:p-4 ${className}`}
     >
       {withLogo ? (
         <div className="relative flex items-center justify-center">
@@ -53,14 +89,24 @@ export const Spinner = ({
           <div className="absolute inset-0 bg-accent/5 rounded-full blur-2xl scale-150" />
 
           {/* ✅ Logo central */}
-          <div className="relative z-10 w-16 h-16 bg-primary-light rounded-2xl border-2 border-accent/20 flex items-center justify-center shadow-glow">
-            <ScissorsIcon size={32} className="text-accent" weight="fill" />
+          <div
+            className={`relative z-10 bg-primary-light rounded-2xl border-2 border-accent/20 flex items-center justify-center shadow-glow ${currentSize.container}`}
+          >
+            <ScissorsIcon
+              size={currentSize.logo}
+              className="text-accent"
+              weight="fill"
+            />
           </div>
 
           {/* ✅ Spinner ao redor da logo */}
           <div className="absolute inset-0 z-0 flex items-center justify-center">
-            <div className="w-24 h-24 rounded-full border-3 border-transparent border-t-accent/60 animate-spin" />
-            <div className="absolute w-20 h-20 rounded-full border-3 border-transparent border-b-accent/30 animate-spin animation-delay-500" />
+            <div
+              className={`rounded-full border-3 border-transparent border-t-accent/60 animate-spin ${currentSize.border}`}
+            />
+            <div
+              className={`absolute rounded-full border-3 border-transparent border-b-accent/30 animate-spin animation-delay-500 ${currentSize.innerBorder}`}
+            />
           </div>
         </div>
       ) : (
@@ -69,7 +115,7 @@ export const Spinner = ({
 
       {text && (
         <p
-          className={`mt-4 text-sm text-text-muted font-medium animate-pulse ${textClassName}`}
+          className={`mt-3 sm:mt-4 text-text-muted font-medium animate-pulse ${currentSize.text} ${textClassName}`}
         >
           {text}
         </p>

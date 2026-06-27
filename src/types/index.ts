@@ -21,6 +21,18 @@ export interface User {
   email: string;
   phone: string;
   avatar_url?: string | null;
+  // ✅ Campos de endereço (apenas para o barbeiro logado)
+  address?: string | null;
+  address_number?: string | null;
+  neighborhood?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip_code?: string | null;
+  working_hours?: string | null;
+  whatsapp?: string | null;
+  instagram?: string | null;
+  facebook?: string | null;
+  google_maps_url?: string | null;
   is_active?: boolean;
   last_login_at?: string | null;
   created_at?: string;
@@ -48,6 +60,61 @@ export interface RegisterData {
   password: string;
   phone: string;
   avatar_url?: string;
+}
+
+/**
+ * ✅ Dados para atualização do perfil
+ * Inclui todos os campos editáveis do barbeiro
+ */
+export interface UpdateProfileData {
+  name?: string;
+  email?: string;
+  phone?: string;
+  avatar_url?: string;
+  // ✅ Campos de endereço
+  address?: string;
+  address_number?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
+  zip_code?: string;
+  working_hours?: string;
+  whatsapp?: string;
+  instagram?: string;
+  facebook?: string;
+  google_maps_url?: string;
+}
+
+// ✅ Alterar senha
+export interface ChangePasswordData {
+  current_password: string;
+  new_password: string;
+}
+
+/**
+ * ✅ Informações públicas da barbearia
+ * 🔒 Contém APENAS dados que podem ser expostos publicamente
+ * ⚠️ NUNCA contém: id, email, password_hash, last_login_at
+ */
+export interface BarberPublicInfo {
+  name: string;
+  phone: string;
+  avatar_url?: string | null;
+  // ✅ Campos de endereço (públicos)
+  address?: string | null;
+  address_number?: string | null;
+  neighborhood?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip_code?: string | null;
+  working_hours?: string | null;
+  whatsapp?: string | null;
+  instagram?: string | null;
+  facebook?: string | null;
+  google_maps_url?: string | null;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // ========================================
@@ -81,10 +148,6 @@ export interface UpdateClientData {
   notes?: string;
   is_active?: boolean;
 }
-
-// ========================================
-// 📦 MODELOS DE PRODUTOS/SERVIÇOS
-// ========================================
 
 // ========================================
 // 📦 MODELOS DE PRODUTOS/SERVIÇOS
@@ -144,13 +207,13 @@ export const categoryLabels: Record<ProductCategory, string> = {
 
 // ✅ Mapeamento de categoria para ícone (apenas frontend)
 export const categoryIconMap: Record<ProductCategory, string> = {
-  corte: "✂️", // Scissors
-  barba: "🪒", // Razor
-  coloracao: "🎨", // Palette
-  tratamento: "💆", // Treatment
-  estilizacao: "🖌️", // Brush
-  pacote: "📦", // Package
-  outros: "📌", // Other
+  corte: "✂️",
+  barba: "🪒",
+  coloracao: "🎨",
+  tratamento: "💆",
+  estilizacao: "🖌️",
+  pacote: "📦",
+  outros: "📌",
 };
 
 // ✅ Mapeamento para ícones do Phosphor
@@ -185,8 +248,8 @@ export interface Appointment {
   id: number;
   client_id: number;
   service_id: number;
-  client?: Client; // Opcional porque pode vir populado ou não
-  service?: Product; // Opcional porque pode vir populado ou não
+  client?: Client;
+  service?: Product;
   appointment_date: string;
   appointment_time: string;
   status: StatusType;
@@ -233,7 +296,7 @@ export interface AppointmentFilters {
 
 export interface WorkSchedule {
   id: number;
-  day_of_week: number; // 0 = Domingo, 6 = Sábado
+  day_of_week: number;
   is_working: boolean;
   start_time?: string | null;
   end_time?: string | null;
@@ -334,6 +397,16 @@ export interface ClientStats {
   top_spender?: Client;
 }
 
+export interface BarberStats {
+  totalAppointments: number;
+  totalClients: number;
+  totalRevenue: number;
+  todayAppointments: number;
+  monthlyRevenue?: number;
+  weeklyAppointments?: number;
+  averageRating?: number;
+}
+
 export interface TemporalStatus {
   label: string;
   className: string;
@@ -356,6 +429,36 @@ export interface RescheduleModalProps {
   appointment: Appointment | null;
   services?: Product[];
   isLoading?: boolean;
+}
+
+// ========================================
+// 📦 MODELOS DE HISTÓRICO DO CLIENTE
+// ========================================
+
+/**
+ * Estatísticas do histórico de agendamentos de um cliente
+ */
+export interface ClientHistoryStats {
+  /** Total de agendamentos realizados */
+  totalAppointments: number;
+  /** Valor total gasto em todos os agendamentos */
+  totalSpent: number;
+  /** Ticket médio por agendamento */
+  averageTicket: number;
+  /** Nome do serviço mais utilizado pelo cliente */
+  mostUsedService: string;
+  /** Data do último agendamento (formato ISO) */
+  lastVisit: string | null;
+  /** Data do primeiro agendamento (formato ISO) */
+  firstVisit: string | null;
+}
+
+/**
+ * Agrupamento de agendamentos por mês/ano
+ * @example { "2026-06": Appointment[], "2026-05": Appointment[] }
+ */
+export interface MonthlyAppointmentsGroup {
+  [monthKey: string]: Appointment[];
 }
 
 // ========================================
