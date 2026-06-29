@@ -44,4 +44,20 @@ export const authEndpoint = {
     const response = await api.get("/auth/public-profile");
     return response.data;
   },
+
+  // ✅ Solicitar recuperação de senha (NOVO)
+  forgotPassword: async (data: { email: string }) => {
+    const response = await api.post("/auth/forgot-password", data);
+    return response.data;
+  },
+
+  // ✅ Redefinir senha com token (NOVO)
+  resetPassword: async (data: {
+    token: string;
+    new_password: string;
+    confirm_password: string;
+  }) => {
+    const response = await api.post("/auth/reset-password", data);
+    return response.data;
+  },
 };

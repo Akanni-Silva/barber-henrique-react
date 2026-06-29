@@ -325,7 +325,6 @@ export const ScheduleManagement = () => {
           <ArrowLeftIcon size={18} />
         </Link>
         <div>
-          <h1 className="font-serif text-lg font-bold text-text">📅 Agenda</h1>
           <p className="text-text-muted text-xs">
             Configure os horários da barbearia
           </p>

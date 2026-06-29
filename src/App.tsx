@@ -26,6 +26,7 @@ import { MobileHeader } from "./components/Layout/MobileHeader";
 import { Perfil } from "./pages/Private/Perfil";
 import ClientHistory from "./pages/Private/ClientHistory";
 import { BarberInfoProvider } from "./contexts/BarberInfoContext";
+import { ResetPassword } from "./pages/Public/ResetPassword";
 
 function AppContent() {
   const location = useLocation();
@@ -48,6 +49,7 @@ function AppContent() {
           <Route path="/servicos" element={<Services />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           <Route
             element={<ProtectedRoute requireGuest redirectTo="/dashboard" />}

@@ -30,13 +30,18 @@ import { formatDate } from "../../utils/formatDate";
 import {
   getTemporalStatus,
   sortByTemporalPriority,
+  canConfirmAppointment,
+  canCompleteAppointment,
   canRescheduleAppointment,
+  canCancelAppointment,
 } from "../../utils/appointmentStatus";
 import type {
   Appointment,
   AppointmentStats,
   StatusType,
   Product,
+  ActionItem,
+  
 } from "../../types";
 import { useGuestRedirect } from "../../hooks/useGuestRedirect";
 
@@ -55,14 +60,6 @@ export const Dashboard = () => {
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [appointmentToReschedule, setAppointmentToReschedule] =
     useState<Appointment | null>(null);
-
-  const sortedTodayAppointments = useMemo(() => {
-    return sortByTemporalPriority(todayAppointments);
-  }, [todayAppointments]);
-
-  const sortedUpcomingAppointments = useMemo(() => {
-    return sortByTemporalPriority(upcomingAppointments);
-  }, [upcomingAppointments]);
 
   const extractArray = (data: any, fallback: any[] = []): any[] => {
     if (!data) return fallback;
@@ -172,6 +169,7 @@ export const Dashboard = () => {
     const temporalStatus = getTemporalStatus(
       appointment.appointment_date,
       appointment.appointment_time,
+      appointment.status,
     );
 
     if (temporalStatus.isPast || temporalStatus.isLate) {
@@ -209,6 +207,7 @@ export const Dashboard = () => {
     const temporalStatus = getTemporalStatus(
       appointment.appointment_date,
       appointment.appointment_time,
+      appointment.status,
     );
 
     if (
@@ -246,7 +245,6 @@ export const Dashboard = () => {
     }
   };
 
-  // ✅ Cancelar com confirmação
   const handleCancel = async (id: number) => {
     try {
       await handleRequest(
@@ -279,18 +277,28 @@ export const Dashboard = () => {
     }
   };
 
-  const getAvailableActions = (appointment: Appointment) => {
+  // ✅ Função com tipagem correta usando ActionItem do types
+  const getAvailableActions = (appointment: Appointment): ActionItem[] => {
     const temporalStatus = getTemporalStatus(
       appointment.appointment_date,
       appointment.appointment_time,
+      appointment.status,
     );
 
-    const actions = [];
+    const actions: ActionItem[] = [];
 
+    // ✅ Só mostrar ações se o agendamento NÃO estiver concluído ou cancelado
+    if (
+      appointment.status === "completed" ||
+      appointment.status === "cancelled"
+    ) {
+      return actions;
+    }
+
+    // ✅ Confirmar - apenas para pendentes e não atrasados/passados
     if (
       appointment.status === "pending" &&
-      !temporalStatus.isPast &&
-      !temporalStatus.isLate
+      canConfirmAppointment(temporalStatus, appointment.status)
     ) {
       actions.push({
         key: "confirm",
@@ -302,11 +310,10 @@ export const Dashboard = () => {
       });
     }
 
+    // ✅ Finalizar - apenas para confirmados e em andamento/atrasado
     if (
       appointment.status === "confirmed" &&
-      (temporalStatus.isPast ||
-        temporalStatus.isLate ||
-        temporalStatus.label.includes("Em andamento"))
+      canCompleteAppointment(temporalStatus, appointment.status)
     ) {
       actions.push({
         key: "complete",
@@ -318,11 +325,8 @@ export const Dashboard = () => {
       });
     }
 
-    if (
-      appointment.status === "pending" ||
-      appointment.status === "confirmed" ||
-      canRescheduleAppointment(temporalStatus)
-    ) {
+    // ✅ Reagendar - para pendentes ou confirmados que estão atrasados
+    if (canRescheduleAppointment(temporalStatus, appointment.status)) {
       actions.push({
         key: "reschedule",
         label: "Reagendar",
@@ -333,19 +337,21 @@ export const Dashboard = () => {
       });
     }
 
-    // ✅ Cancelar com confirmação
-    actions.push({
-      key: "cancel",
-      label: "Cancelar",
-      icon: <XCircleIcon size={20} />,
-      onClick: () => {}, // O ConfirmPopup cuida da ação
-      className: "bg-red-500/20 text-red-500 hover:bg-red-500/30",
-      size: "w-9 h-9",
-      isConfirm: true,
-      confirmTitle: "Cancelar Agendamento",
-      confirmMessage: `Tem certeza que deseja cancelar o agendamento de ${appointment.client?.name || "cliente"}?`,
-      onConfirm: () => handleCancel(appointment.id),
-    });
+    // ✅ Cancelar - apenas se não estiver concluído ou cancelado
+    if (canCancelAppointment(appointment.status)) {
+      actions.push({
+        key: "cancel",
+        label: "Cancelar",
+        icon: <XCircleIcon size={20} />,
+        onClick: () => {},
+        className: "bg-red-500/20 text-red-500 hover:bg-red-500/30",
+        size: "w-9 h-9",
+        isConfirm: true,
+        confirmTitle: "Cancelar Agendamento",
+        confirmMessage: `Tem certeza que deseja cancelar o agendamento de ${appointment.client?.name || "cliente"}?`,
+        onConfirm: () => handleCancel(appointment.id),
+      });
+    }
 
     return actions;
   };
@@ -372,6 +378,28 @@ export const Dashboard = () => {
     };
     return statusMap[status] || statusMap.pending;
   }, []);
+
+  // ✅ Memoizações - Ordem correta
+  const sortedTodayAppointments = useMemo(() => {
+    return sortByTemporalPriority(todayAppointments);
+  }, [todayAppointments]);
+
+  const sortedUpcomingAppointments = useMemo(() => {
+    return sortByTemporalPriority(upcomingAppointments);
+  }, [upcomingAppointments]);
+
+  // ✅ Filtrar agendamentos ativos (não concluídos ou cancelados)
+  const activeTodayAppointments = useMemo(() => {
+    return sortedTodayAppointments.filter(
+      (app) => app.status !== "completed" && app.status !== "cancelled",
+    );
+  }, [sortedTodayAppointments]);
+
+  const activeUpcomingAppointments = useMemo(() => {
+    return sortedUpcomingAppointments.filter(
+      (app) => app.status !== "completed" && app.status !== "cancelled",
+    );
+  }, [sortedUpcomingAppointments]);
 
   useGuestRedirect({
     redirectTo: "/",
@@ -494,15 +522,15 @@ export const Dashboard = () => {
           <div className="flex justify-between items-center mb-3">
             <h2 className="font-serif text-sm font-bold text-text">📅 Hoje</h2>
             <span className="text-text-muted text-xs">
-              {sortedTodayAppointments.length}
+              {activeTodayAppointments.length}
             </span>
           </div>
 
-          {sortedTodayAppointments.length === 0 ? (
+          {activeTodayAppointments.length === 0 ? (
             <div className="bg-primary-light rounded-xl text-center py-8 border border-border/50">
               <div className="text-3xl mb-2">📭</div>
               <p className="text-text text-sm font-semibold">
-                Nenhum agendamento hoje
+                Nenhum agendamento ativo hoje
               </p>
               <p className="text-text-muted text-xs mt-1">
                 {stats?.pending && stats.pending > 0
@@ -526,13 +554,14 @@ export const Dashboard = () => {
             </div>
           ) : (
             <div className="space-y-2">
-              {sortedTodayAppointments.map((appointment) => {
+              {activeTodayAppointments.map((appointment) => {
                 const status = getStatusBadge(appointment.status);
                 const temporalStatus = getTemporalStatus(
                   appointment.appointment_date,
                   appointment.appointment_time,
+                  appointment.status,
                 );
-                const actions = getAvailableActions(appointment);
+                const actions: ActionItem[] = getAvailableActions(appointment);
 
                 return (
                   <div
@@ -600,7 +629,7 @@ export const Dashboard = () => {
                                       {action.icon}
                                     </button>
                                   }
-                                  onConfirm={action.onConfirm}
+                                  onConfirm={action.onConfirm!}
                                   title={action.confirmTitle || "Confirmar"}
                                   message={action.confirmMessage || ""}
                                   confirmText="Confirmar"
@@ -638,19 +667,22 @@ export const Dashboard = () => {
             <h2 className="font-serif text-sm font-bold text-text mb-3">
               📌 Próximos
             </h2>
-            {sortedUpcomingAppointments.length === 0 ? (
+            {activeUpcomingAppointments.length === 0 ? (
               <div className="bg-primary-light rounded-xl text-center py-6 border border-border/50">
                 <div className="text-2xl mb-1">📅</div>
-                <p className="text-text-muted text-xs">Nenhum futuro</p>
+                <p className="text-text-muted text-xs">
+                  Nenhum agendamento futuro
+                </p>
               </div>
             ) : (
               <div className="space-y-1.5">
-                {sortedUpcomingAppointments.map((app) => {
+                {activeUpcomingAppointments.map((app) => {
                   const temporalStatus = getTemporalStatus(
                     app.appointment_date,
                     app.appointment_time,
+                    app.status,
                   );
-                  const actions = getAvailableActions(app);
+                  const actions: ActionItem[] = getAvailableActions(app);
 
                   return (
                     <div
@@ -694,7 +726,7 @@ export const Dashboard = () => {
                                         {action.icon}
                                       </button>
                                     }
-                                    onConfirm={action.onConfirm}
+                                    onConfirm={action.onConfirm!}
                                     title={action.confirmTitle || "Confirmar"}
                                     message={action.confirmMessage || ""}
                                     confirmText="Confirmar"

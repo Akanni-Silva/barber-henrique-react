@@ -1,10 +1,10 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // src/utils/appointmentStatus.ts
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import type { Appointment, TemporalStatus } from "../types";
 
 /**
  * Converte uma string de data (YYYY-MM-DD) para um objeto Date
- * sem problemas de timezone, usando a mesma lógica do formatDate
+ * sem problemas de timezone
  */
 const parseDateSafe = (dateStr: string): Date => {
   const parts = dateStr.split("-");
@@ -26,42 +26,51 @@ const isSameDay = (date1: Date, date2: Date): boolean => {
 };
 
 /**
- * Verifica se uma data é futura em relação a outra (ignorando horário)
- */
-const isDateFuture = (date1: Date, date2: Date): boolean => {
-  return (
-    date1.getFullYear() > date2.getFullYear() ||
-    (date1.getFullYear() === date2.getFullYear() &&
-      date1.getMonth() > date2.getMonth()) ||
-    (date1.getFullYear() === date2.getFullYear() &&
-      date1.getMonth() === date2.getMonth() &&
-      date1.getDate() > date2.getDate())
-  );
-};
-
-/**
  * Calcula o status temporal de um agendamento
- * - Só classifica como "Atrasado" ou "Começa em" se for HOJE
- * - Agendamentos futuros (outras datas) são "Futuro"
- * - Agendamentos passados (outras datas) são "Passado"
+ * ✅ Melhorado: Agora trata corretamente agendamentos concluídos
  */
 export const getTemporalStatus = (
   appointmentDate: string,
   appointmentTime: string,
+  appointmentStatus: string,
   currentTime: Date = new Date(),
 ): TemporalStatus => {
-  // ✅ Criar data do agendamento usando parseDateSafe
-  const appointmentDateObj = parseDateSafe(appointmentDate);
+  // ✅ Se já foi concluído, retorna status específico
+  if (appointmentStatus === "completed") {
+    return {
+      label: "✅ Concluído",
+      className: "bg-blue-500/10 text-blue-500 border-blue-500/30",
+      priority: 7,
+      isPast: true,
+      isLate: false,
+      isUpcoming: false,
+      minutesDiff: 0,
+    };
+  }
 
-  // Extrair hora e minuto do agendamento
+  // ✅ Se foi cancelado, retorna status específico
+  if (appointmentStatus === "cancelled") {
+    return {
+      label: "❌ Cancelado",
+      className: "bg-gray-500/10 text-gray-500 border-gray-500/30",
+      priority: 8,
+      isPast: true,
+      isLate: false,
+      isUpcoming: false,
+      minutesDiff: 0,
+    };
+  }
+
+  // ✅ Criar data do agendamento
+  const appointmentDateObj = parseDateSafe(appointmentDate);
   const [hours, minutes] = appointmentTime.split(":").map(Number);
   appointmentDateObj.setHours(hours, minutes, 0, 0);
 
-  // ✅ Criar data de hoje (sem horário)
+  // ✅ Data de hoje (sem horário)
   const today = new Date(currentTime);
   today.setHours(0, 0, 0, 0);
 
-  // ✅ Verificar se é hoje usando isSameDay
+  // ✅ Verificar se é hoje
   const isToday = isSameDay(appointmentDateObj, today);
 
   // Calcular diferença em minutos
@@ -69,10 +78,9 @@ export const getTemporalStatus = (
     (appointmentDateObj.getTime() - currentTime.getTime()) / 1000 / 60,
   );
 
-  // ✅ Se não for hoje, classificar como Futuro ou Passado
+  // ✅ Se não for hoje
   if (!isToday) {
-    const isFuture = isDateFuture(appointmentDateObj, today);
-
+    const isFuture = appointmentDateObj > today;
     return {
       label: isFuture ? "📅 Futuro" : "📅 Passado",
       className: isFuture
@@ -87,6 +95,19 @@ export const getTemporalStatus = (
   }
 
   // ✅ Se for hoje, aplicar regras de status temporal
+  // Agendamentos confirmados mas que já passaram
+  if (diffMinutes < -15 && appointmentStatus === "confirmed") {
+    return {
+      label: "🔴 Cliente não compareceu",
+      className: "bg-red-500/20 text-red-500 border-red-500/40 font-bold",
+      priority: 1,
+      isPast: true,
+      isLate: true,
+      isUpcoming: false,
+      minutesDiff: diffMinutes,
+    };
+  }
+
   if (diffMinutes < -15) {
     return {
       label: "🔴 Muito Atrasado",
@@ -142,54 +163,70 @@ export const getTemporalStatus = (
 
 /**
  * Verifica se um agendamento pode ser confirmado
- * ✅ Pode confirmar: Futuro, Começa em, Em andamento
- * ❌ Não pode confirmar: Atrasado, Muito Atrasado, Passado
  */
 export const canConfirmAppointment = (
   temporalStatus: TemporalStatus,
+  appointmentStatus: string,
 ): boolean => {
+  // ❌ Não pode confirmar se já foi concluído ou cancelado
+  if (appointmentStatus === "completed" || appointmentStatus === "cancelled") {
+    return false;
+  }
   return !temporalStatus.isPast && !temporalStatus.isLate;
 };
 
 /**
  * Verifica se um agendamento pode ser finalizado
- * ✅ Pode finalizar: Em andamento, Atrasado, Muito Atrasado, Passado
- * ❌ Não pode finalizar: Futuro, Começa em
  */
 export const canCompleteAppointment = (
   temporalStatus: TemporalStatus,
+  appointmentStatus: string,
 ): boolean => {
+  // ❌ Não pode finalizar se já foi concluído ou cancelado
+  if (appointmentStatus === "completed" || appointmentStatus === "cancelled") {
+    return false;
+  }
+  // ✅ Só pode finalizar se estiver confirmado e em andamento/atrasado/passado
   return (
-    temporalStatus.isPast ||
-    temporalStatus.isLate ||
-    temporalStatus.label.includes("Em andamento")
+    appointmentStatus === "confirmed" &&
+    (temporalStatus.isPast ||
+      temporalStatus.isLate ||
+      temporalStatus.label.includes("Em andamento"))
   );
 };
 
 /**
  * Verifica se um agendamento pode ser reagendado
- * ✅ Pode reagendar: Atrasado, Muito Atrasado, Passado
- * ❌ Não pode reagendar: Futuro, Começa em, Em andamento
  */
 export const canRescheduleAppointment = (
   temporalStatus: TemporalStatus,
+  appointmentStatus: string,
 ): boolean => {
-  return temporalStatus.isPast || temporalStatus.isLate;
+  // ❌ Não pode reagendar se já foi concluído ou cancelado
+  if (appointmentStatus === "completed" || appointmentStatus === "cancelled") {
+    return false;
+  }
+  // ✅ Pode reagendar se estiver pendente ou confirmado e atrasado/passado
+  return (
+    appointmentStatus === "pending" ||
+    (appointmentStatus === "confirmed" &&
+      (temporalStatus.isPast || temporalStatus.isLate))
+  );
 };
 
 /**
  * Verifica se um agendamento pode ser cancelado
- * ✅ Sempre pode cancelar
  */
-export const canCancelAppointment = (
-  temporalStatus: TemporalStatus,
-): boolean => {
+export const canCancelAppointment = (appointmentStatus: string): boolean => {
+  // ❌ Não pode cancelar se já foi concluído ou cancelado
+  if (appointmentStatus === "completed" || appointmentStatus === "cancelled") {
+    return false;
+  }
   return true;
 };
 
 /**
  * Ordena agendamentos por prioridade de status temporal
- * (Atrasados aparecem primeiro, depois os que estão começando)
  */
 export const sortByTemporalPriority = (
   appointments: Appointment[],
@@ -199,11 +236,13 @@ export const sortByTemporalPriority = (
     const statusA = getTemporalStatus(
       a.appointment_date,
       a.appointment_time,
+      a.status,
       now,
     );
     const statusB = getTemporalStatus(
       b.appointment_date,
       b.appointment_time,
+      b.status,
       now,
     );
     return statusA.priority - statusB.priority;

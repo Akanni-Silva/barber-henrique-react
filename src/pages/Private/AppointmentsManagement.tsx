@@ -30,8 +30,16 @@ import { formatDate } from "../../utils/formatDate";
 import {
   getTemporalStatus,
   canRescheduleAppointment,
+  canConfirmAppointment,
+  canCompleteAppointment,
+  canCancelAppointment,
 } from "../../utils/appointmentStatus";
-import type { Appointment, AppointmentFilters, Product } from "../../types";
+import type {
+  Appointment,
+  AppointmentFilters,
+  Product,
+  ActionItem,
+} from "../../types";
 import { useGuestRedirect } from "../../hooks/useGuestRedirect";
 import { useFilter } from "../../contexts/FilterContext";
 
@@ -203,6 +211,7 @@ export const AppointmentsManagement = () => {
     const temporalStatus = getTemporalStatus(
       appointment.appointment_date,
       appointment.appointment_time,
+      appointment.status,
     );
     if (temporalStatus.isPast || temporalStatus.isLate) {
       toast.warning(
@@ -225,6 +234,7 @@ export const AppointmentsManagement = () => {
     const temporalStatus = getTemporalStatus(
       appointment.appointment_date,
       appointment.appointment_time,
+      appointment.status,
     );
     if (
       !temporalStatus.isPast &&
@@ -298,17 +308,28 @@ export const AppointmentsManagement = () => {
     return statusMap[status] || statusMap.pending;
   };
 
-  const getAvailableActions = (appointment: Appointment) => {
+  // ✅ Função com tipagem correta usando ActionItem do types
+  const getAvailableActions = (appointment: Appointment): ActionItem[] => {
     const temporalStatus = getTemporalStatus(
       appointment.appointment_date,
       appointment.appointment_time,
+      appointment.status,
     );
-    const actions = [];
 
+    const actions: ActionItem[] = [];
+
+    // ✅ Só mostrar ações se o agendamento NÃO estiver concluído ou cancelado
+    if (
+      appointment.status === "completed" ||
+      appointment.status === "cancelled"
+    ) {
+      return actions;
+    }
+
+    // ✅ Confirmar - apenas para pendentes e não atrasados/passados
     if (
       appointment.status === "pending" &&
-      !temporalStatus.isPast &&
-      !temporalStatus.isLate
+      canConfirmAppointment(temporalStatus, appointment.status)
     ) {
       actions.push({
         key: "confirm",
@@ -316,14 +337,14 @@ export const AppointmentsManagement = () => {
         icon: <CheckCircleIcon size={16} />,
         onClick: () => handleConfirm(appointment.id, appointment),
         className: "bg-green-500/20 text-green-500 hover:bg-green-500/30",
+        size: "w-9 h-9",
       });
     }
 
+    // ✅ Finalizar - apenas para confirmados e em andamento/atrasado
     if (
       appointment.status === "confirmed" &&
-      (temporalStatus.isPast ||
-        temporalStatus.isLate ||
-        temporalStatus.label.includes("Em andamento"))
+      canCompleteAppointment(temporalStatus, appointment.status)
     ) {
       actions.push({
         key: "complete",
@@ -331,30 +352,37 @@ export const AppointmentsManagement = () => {
         icon: <CheckCircleIcon size={16} />,
         onClick: () => handleComplete(appointment.id, appointment),
         className: "bg-blue-500/20 text-blue-500 hover:bg-blue-500/30",
+        size: "w-9 h-9",
       });
     }
 
-    if (
-      appointment.status === "pending" ||
-      appointment.status === "confirmed" ||
-      canRescheduleAppointment(temporalStatus)
-    ) {
+    // ✅ Reagendar - para pendentes ou confirmados que estão atrasados
+    if (canRescheduleAppointment(temporalStatus, appointment.status)) {
       actions.push({
         key: "reschedule",
         label: "Reagendar",
         icon: <CalendarPlusIcon size={16} />,
         onClick: () => openRescheduleModal(appointment),
         className: "bg-purple-500/20 text-purple-500 hover:bg-purple-500/30",
+        size: "w-9 h-9",
       });
     }
 
-    actions.push({
-      key: "cancel",
-      label: "Cancelar",
-      icon: <XCircleIcon size={16} />,
-      onClick: () => handleCancel(appointment.id),
-      className: "bg-red-500/20 text-red-500 hover:bg-red-500/30",
-    });
+    // ✅ Cancelar - apenas se não estiver concluído ou cancelado
+    if (canCancelAppointment(appointment.status)) {
+      actions.push({
+        key: "cancel",
+        label: "Cancelar",
+        icon: <XCircleIcon size={16} />,
+        onClick: () => {},
+        className: "bg-red-500/20 text-red-500 hover:bg-red-500/30",
+        size: "w-9 h-9",
+        isConfirm: true,
+        confirmTitle: "Cancelar Agendamento",
+        confirmMessage: `Tem certeza que deseja cancelar o agendamento de ${appointment.client?.name || "cliente"}?`,
+        onConfirm: () => handleCancel(appointment.id),
+      });
+    }
 
     return actions;
   };
@@ -378,7 +406,6 @@ export const AppointmentsManagement = () => {
           <ArrowLeftIcon size={18} />
         </Link>
         <div>
-          
           <p className="text-text-muted text-xs">
             {total} agendamentos encontrados
           </p>
@@ -517,8 +544,9 @@ export const AppointmentsManagement = () => {
             const temporalStatus = getTemporalStatus(
               appointment.appointment_date,
               appointment.appointment_time,
+              appointment.status,
             );
-            const actions = getAvailableActions(appointment);
+            const actions: ActionItem[] = getAvailableActions(appointment);
 
             return (
               <div
@@ -595,7 +623,7 @@ export const AppointmentsManagement = () => {
                     </button>
 
                     {actions.map((action) => {
-                      if (action.key === "cancel") {
+                      if (action.isConfirm) {
                         return (
                           <ConfirmPopup
                             key={action.key}
@@ -609,11 +637,11 @@ export const AppointmentsManagement = () => {
                                 </span>
                               </button>
                             }
-                            onConfirm={action.onClick}
-                            title="Cancelar Agendamento"
-                            message={`Deseja cancelar o agendamento de ${appointment.client?.name || "cliente"}?`}
-                            confirmText="Cancelar"
-                            cancelText="Voltar"
+                            onConfirm={action.onConfirm!}
+                            title={action.confirmTitle || "Confirmar"}
+                            message={action.confirmMessage || ""}
+                            confirmText="Confirmar"
+                            cancelText="Cancelar"
                             variant="danger"
                             size="sm"
                           />
@@ -757,6 +785,7 @@ export const AppointmentsManagement = () => {
                       getTemporalStatus(
                         selectedAppointment.appointment_date,
                         selectedAppointment.appointment_time,
+                        selectedAppointment.status,
                       ).className
                     }`}
                   >
@@ -764,6 +793,7 @@ export const AppointmentsManagement = () => {
                       getTemporalStatus(
                         selectedAppointment.appointment_date,
                         selectedAppointment.appointment_time,
+                        selectedAppointment.status,
                       ).label
                     }
                   </span>
@@ -785,7 +815,7 @@ export const AppointmentsManagement = () => {
               {/* Ações */}
               <div className="flex flex-wrap gap-2 pt-2">
                 {getAvailableActions(selectedAppointment).map((action) => {
-                  if (action.key === "cancel") {
+                  if (action.isConfirm) {
                     return (
                       <ConfirmPopup
                         key={action.key}
@@ -794,13 +824,10 @@ export const AppointmentsManagement = () => {
                             {action.label}
                           </Button>
                         }
-                        onConfirm={() => {
-                          action.onClick();
-                          setShowDetails(false);
-                        }}
-                        title="Cancelar Agendamento"
-                        message={`Deseja cancelar o agendamento de ${selectedAppointment.client?.name || "cliente"}?`}
-                        confirmText="Cancelar"
+                        onConfirm={action.onConfirm!}
+                        title={action.confirmTitle || "Confirmar"}
+                        message={action.confirmMessage || ""}
+                        confirmText="Confirmar"
                         cancelText="Voltar"
                         variant="danger"
                         size="sm"

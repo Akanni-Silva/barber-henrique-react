@@ -11,6 +11,19 @@ import {
   ScissorsIcon,
 } from "@phosphor-icons/react";
 
+
+export interface ActionItem {
+  key: string;
+  label: string;
+  icon: React.ReactNode;
+  onClick: () => void;
+  className: string;
+  size: string;
+  isConfirm?: boolean;
+  confirmTitle?: string;
+  confirmMessage?: string;
+  onConfirm?: () => void;
+}
 // ========================================
 // 📦 MODELOS DE AUTENTICAÇÃO
 // ========================================
