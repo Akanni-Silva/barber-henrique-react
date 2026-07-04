@@ -21,7 +21,7 @@ export const Login = () => {
   return (
     <div className="min-h-[80vh] flex items-center justify-center py-6 px-4">
       <div className="w-full max-w-sm">
-        {/* ✅ Botão Voltar - Mobile First */}
+        {/*  Botão Voltar - Mobile First */}
         <button
           onClick={() => navigate("/")}
           className="inline-flex items-center gap-2 text-text-muted hover:text-accent transition mb-6 group active:scale-[0.97]"
@@ -33,7 +33,7 @@ export const Login = () => {
           <span className="text-sm font-medium">Voltar</span>
         </button>
 
-        {/* ✅ Logo e título - Mobile First */}
+        {/*  Logo e título - Mobile First */}
         <div className="text-center mb-8">
           <div className="w-20 h-20 bg-accent/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border-2 border-accent/20 shadow-glow">
             <ScissorsIcon size={32} className="text-accent" weight="fill" />
@@ -44,14 +44,14 @@ export const Login = () => {
           <p className="text-text-muted text-sm mt-1">Área do Barbeiro</p>
         </div>
 
-        {/* ✅ Formulário de Login */}
+        {/*  Formulário de Login */}
         <LoginForm onSuccess={handleLoginSuccess} />
 
-        {/* ✅ Footer com informações - Mobile First */}
+        {/*  Footer com informações - Mobile First */}
         <div className="mt-8 space-y-4 text-center">
           {/* Badge de segurança */}
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent/5 rounded-full border border-accent/10">
-            <span className="text-accent text-xs">✂️</span>
+            
             <span className="text-text-muted text-xs font-medium">
               Desde 2026
             </span>

@@ -17,6 +17,8 @@ import {
   ListIcon,
   PlusCircleIcon,
   CalendarPlusIcon,
+  TrendUpIcon,
+  UsersIcon,
 } from "@phosphor-icons/react";
 import { useApi } from "../../hooks/useApi";
 import { useAuth } from "../../hooks/useAuth";
@@ -41,7 +43,6 @@ import type {
   StatusType,
   Product,
   ActionItem,
-  
 } from "../../types";
 import { useGuestRedirect } from "../../hooks/useGuestRedirect";
 
@@ -56,10 +57,21 @@ export const Dashboard = () => {
   >([]);
   const [loadingStats, setLoadingStats] = useState(true);
   const [services, setServices] = useState<Product[]>([]);
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
 
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [appointmentToReschedule, setAppointmentToReschedule] =
     useState<Appointment | null>(null);
+
+  // ✅ Detectar tamanho da tela
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const extractArray = (data: any, fallback: any[] = []): any[] => {
     if (!data) return fallback;
@@ -277,7 +289,6 @@ export const Dashboard = () => {
     }
   };
 
-  // ✅ Função com tipagem correta usando ActionItem do types
   const getAvailableActions = (appointment: Appointment): ActionItem[] => {
     const temporalStatus = getTemporalStatus(
       appointment.appointment_date,
@@ -287,7 +298,6 @@ export const Dashboard = () => {
 
     const actions: ActionItem[] = [];
 
-    // ✅ Só mostrar ações se o agendamento NÃO estiver concluído ou cancelado
     if (
       appointment.status === "completed" ||
       appointment.status === "cancelled"
@@ -295,7 +305,6 @@ export const Dashboard = () => {
       return actions;
     }
 
-    // ✅ Confirmar - apenas para pendentes e não atrasados/passados
     if (
       appointment.status === "pending" &&
       canConfirmAppointment(temporalStatus, appointment.status)
@@ -310,7 +319,6 @@ export const Dashboard = () => {
       });
     }
 
-    // ✅ Finalizar - apenas para confirmados e em andamento/atrasado
     if (
       appointment.status === "confirmed" &&
       canCompleteAppointment(temporalStatus, appointment.status)
@@ -325,7 +333,6 @@ export const Dashboard = () => {
       });
     }
 
-    // ✅ Reagendar - para pendentes ou confirmados que estão atrasados
     if (canRescheduleAppointment(temporalStatus, appointment.status)) {
       actions.push({
         key: "reschedule",
@@ -337,7 +344,6 @@ export const Dashboard = () => {
       });
     }
 
-    // ✅ Cancelar - apenas se não estiver concluído ou cancelado
     if (canCancelAppointment(appointment.status)) {
       actions.push({
         key: "cancel",
@@ -379,7 +385,6 @@ export const Dashboard = () => {
     return statusMap[status] || statusMap.pending;
   }, []);
 
-  // ✅ Memoizações - Ordem correta
   const sortedTodayAppointments = useMemo(() => {
     return sortByTemporalPriority(todayAppointments);
   }, [todayAppointments]);
@@ -388,7 +393,6 @@ export const Dashboard = () => {
     return sortByTemporalPriority(upcomingAppointments);
   }, [upcomingAppointments]);
 
-  // ✅ Filtrar agendamentos ativos (não concluídos ou cancelados)
   const activeTodayAppointments = useMemo(() => {
     return sortedTodayAppointments.filter(
       (app) => app.status !== "completed" && app.status !== "cancelled",
@@ -423,12 +427,12 @@ export const Dashboard = () => {
   return (
     <>
       {/* ✅ Header com saudação */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-6">
         <div>
-          <h1 className="font-serif text-xl font-bold text-text">
+          <h1 className="font-serif text-xl md:text-2xl font-bold text-text">
             Olá, {user?.name?.split(" ")[0] || "Barbeiro"} 👋
           </h1>
-          <p className="text-text-muted text-xs">
+          <p className="text-text-muted text-xs md:text-sm">
             {new Date().toLocaleDateString("pt-BR", {
               weekday: "long",
               day: "numeric",
@@ -437,43 +441,47 @@ export const Dashboard = () => {
             })}
           </p>
         </div>
-        <Button
-          variant="primary"
-          size="sm"
-          icon={<ListIcon size={16} />}
-          onClick={() => (window.location.href = "/agendamentos")}
-        >
-          Ver todos
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="primary"
+            size="sm"
+            icon={<ListIcon size={16} />}
+            onClick={() => (window.location.href = "/agendamentos")}
+          >
+            Ver todos
+          </Button>
+        </div>
       </div>
 
-      {/* ✅ Cards de Estatísticas */}
-      <section className="grid grid-cols-2 gap-2 mb-4">
-        <div className="bg-primary-light rounded-xl p-3 border border-border/50">
+      {/* ✅ Cards de Estatísticas - Grid adaptativo */}
+      <section className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 mb-4">
+        <div className="bg-primary-light rounded-xl p-3 md:p-4 border border-border/50">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-text-muted text-[10px] font-medium uppercase tracking-wider">
+              <p className="text-text-muted text-[10px] md:text-xs font-medium uppercase tracking-wider">
                 Total
               </p>
-              <p className="text-lg font-bold text-text">{stats?.total || 0}</p>
+              <p className="text-xl md:text-2xl font-bold text-text">
+                {stats?.total || 0}
+              </p>
             </div>
-            <div className="w-8 h-8 bg-accent/10 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 md:w-10 md:h-10 bg-accent/10 rounded-lg flex items-center justify-center">
               <CalendarIcon size={16} className="text-accent" />
             </div>
           </div>
         </div>
 
-        <div className="bg-primary-light rounded-xl p-3 border border-yellow-500/20">
+        <div className="bg-primary-light rounded-xl p-3 md:p-4 border border-yellow-500/20">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-text-muted text-[10px] font-medium uppercase tracking-wider">
+              <p className="text-text-muted text-[10px] md:text-xs font-medium uppercase tracking-wider">
                 Pendentes
               </p>
-              <p className="text-lg font-bold text-yellow-500">
+              <p className="text-xl md:text-2xl font-bold text-yellow-500">
                 {stats?.pending || 0}
               </p>
             </div>
-            <div className="w-8 h-8 bg-yellow-500/10 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 md:w-10 md:h-10 bg-yellow-500/10 rounded-lg flex items-center justify-center">
               <ClockCounterClockwiseIcon
                 size={16}
                 className="text-yellow-500"
@@ -482,78 +490,80 @@ export const Dashboard = () => {
           </div>
         </div>
 
-        <div className="bg-primary-light rounded-xl p-3 border border-green-500/20">
+        <div className="bg-primary-light rounded-xl p-3 md:p-4 border border-green-500/20">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-text-muted text-[10px] font-medium uppercase tracking-wider">
+              <p className="text-text-muted text-[10px] md:text-xs font-medium uppercase tracking-wider">
                 Confirmados
               </p>
-              <p className="text-lg font-bold text-green-500">
+              <p className="text-xl md:text-2xl font-bold text-green-500">
                 {stats?.confirmed || 0}
               </p>
             </div>
-            <div className="w-8 h-8 bg-green-500/10 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 md:w-10 md:h-10 bg-green-500/10 rounded-lg flex items-center justify-center">
               <CheckCircleIcon size={16} className="text-green-500" />
             </div>
           </div>
         </div>
 
-        <div className="bg-primary-light rounded-xl p-3 border border-accent/20">
+        <div className="bg-primary-light rounded-xl p-3 md:p-4 border border-accent/20">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-text-muted text-[10px] font-medium uppercase tracking-wider">
+              <p className="text-text-muted text-[10px] md:text-xs font-medium uppercase tracking-wider">
                 Receita
               </p>
-              <p className="text-sm font-bold text-accent">
+              <p className="text-lg md:text-xl font-bold text-accent">
                 {formatPrice(Number(stats?.total_revenue) || 0)}
               </p>
             </div>
-            <div className="w-8 h-8 bg-accent/10 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 md:w-10 md:h-10 bg-accent/10 rounded-lg flex items-center justify-center">
               <MoneyIcon size={16} className="text-accent" />
             </div>
           </div>
         </div>
       </section>
 
-      {/* ✅ Grid Principal */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {/* ✅ Grid Principal - Desktop com 2 colunas para mais informações */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         {/* ✅ Agendamentos de Hoje */}
         <section className="lg:col-span-2">
           <div className="flex justify-between items-center mb-3">
-            <h2 className="font-serif text-sm font-bold text-text">📅 Hoje</h2>
+            <h2 className="font-serif text-base md:text-lg font-bold text-text">
+              📅 Hoje
+            </h2>
             <span className="text-text-muted text-xs">
-              {activeTodayAppointments.length}
+              {activeTodayAppointments.length} agendamento(s)
             </span>
           </div>
 
           {activeTodayAppointments.length === 0 ? (
-            <div className="bg-primary-light rounded-xl text-center py-8 border border-border/50">
-              <div className="text-3xl mb-2">📭</div>
-              <p className="text-text text-sm font-semibold">
+            <div className="bg-primary-light rounded-xl text-center py-10 md:py-12 border border-border/50">
+              <div className="text-4xl md:text-5xl mb-3">📭</div>
+              <p className="text-text text-sm md:text-base font-semibold">
                 Nenhum agendamento ativo hoje
               </p>
-              <p className="text-text-muted text-xs mt-1">
+              <p className="text-text-muted text-xs md:text-sm mt-1">
                 {stats?.pending && stats.pending > 0
                   ? `${stats.pending} pendente(s) para outros dias`
                   : "Organize sua agenda"}
               </p>
-              <div className="mt-3 flex flex-wrap justify-center gap-2">
+              <div className="mt-4 flex flex-wrap justify-center gap-2">
                 <Link
                   to="/agendamentos"
-                  className="btn-primary text-xs py-1.5 px-3 rounded-lg"
+                  className="btn-primary text-xs md:text-sm py-1.5 px-3 md:px-4 rounded-lg"
                 >
                   Ver todos
                 </Link>
                 <Link
                   to="/servicos-admin"
-                  className="btn-secondary text-xs py-1.5 px-3 rounded-lg"
+                  className="btn-secondary text-xs md:text-sm py-1.5 px-3 md:px-4 rounded-lg"
                 >
                   Adicionar serviço
                 </Link>
               </div>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2 md:space-y-3">
               {activeTodayAppointments.map((appointment) => {
                 const status = getStatusBadge(appointment.status);
                 const temporalStatus = getTemporalStatus(
@@ -566,7 +576,7 @@ export const Dashboard = () => {
                 return (
                   <div
                     key={appointment.id}
-                    className={`bg-primary-light rounded-xl p-3 border transition-all hover:border-accent/20 ${
+                    className={`bg-primary-light rounded-xl p-3 md:p-4 border transition-all hover:border-accent/20 ${
                       temporalStatus.isLate || temporalStatus.isPast
                         ? "border-red-500/30 bg-red-500/5"
                         : temporalStatus.label.includes("Começa em")
@@ -575,17 +585,20 @@ export const Dashboard = () => {
                     }`}
                   >
                     <div className="flex flex-col gap-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-accent/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <UserIcon size={14} className="text-accent" />
+                      <div className="flex items-start md:items-center gap-3">
+                        <div className="w-8 h-8 md:w-10 md:h-10 bg-accent/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <UserIcon
+                            size={isDesktop ? 18 : 14}
+                            className="text-accent"
+                          />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-text text-sm truncate">
+                          <p className="font-semibold text-text text-sm md:text-base truncate">
                             {appointment.client?.name || "Cliente"}
                           </p>
-                          <div className="flex flex-wrap items-center gap-1.5 text-xs text-text-muted">
+                          <div className="flex flex-wrap items-center gap-1.5 md:gap-2 text-xs md:text-sm text-text-muted">
                             <span className="flex items-center gap-0.5">
-                              <ClockIcon size={10} />
+                              <ClockIcon size={isDesktop ? 14 : 10} />
                               {appointment.appointment_time}
                             </span>
                             <span className="w-0.5 h-0.5 bg-text-muted rounded-full"></span>
@@ -593,29 +606,39 @@ export const Dashboard = () => {
                               {appointment.service?.category ? (
                                 <ServiceIcon
                                   category={appointment.service.category}
-                                  size={10}
+                                  size={isDesktop ? 14 : 10}
                                 />
                               ) : (
                                 "✂️"
                               )}
                               {appointment.service?.name || "Serviço"}
                             </span>
+                            {isDesktop && (
+                              <>
+                                <span className="w-0.5 h-0.5 bg-text-muted rounded-full"></span>
+                                <span className="flex items-center gap-0.5">
+                                  <span className="text-text-muted">
+                                    {formatDate(appointment.appointment_date)}
+                                  </span>
+                                </span>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-1.5">
+                      <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
                         <span
-                          className={`px-1.5 py-0.5 rounded-full text-[8px] font-medium border ${temporalStatus.className}`}
+                          className={`px-1.5 md:px-2 py-0.5 rounded-full text-[8px] md:text-xs font-medium border ${temporalStatus.className}`}
                         >
                           {temporalStatus.label}
                         </span>
                         <span
-                          className={`px-1.5 py-0.5 rounded-full text-[8px] font-medium ${status.className}`}
+                          className={`px-1.5 md:px-2 py-0.5 rounded-full text-[8px] md:text-xs font-medium ${status.className}`}
                         >
                           {status.label}
                         </span>
-                        <div className="flex gap-1 ml-auto">
+                        <div className="flex gap-1 md:gap-1.5 ml-auto">
                           {actions.map((action) => {
                             if (action.isConfirm) {
                               return (
@@ -660,22 +683,22 @@ export const Dashboard = () => {
           )}
         </section>
 
-        {/* ✅ Sidebar */}
-        <aside className="space-y-4">
+        {/* ✅ Sidebar - Desktop com mais informações */}
+        <aside className="space-y-4 md:space-y-6">
           {/* ✅ Próximos Agendamentos */}
           <section>
-            <h2 className="font-serif text-sm font-bold text-text mb-3">
+            <h2 className="font-serif text-base md:text-lg font-bold text-text mb-3">
               📌 Próximos
             </h2>
             {activeUpcomingAppointments.length === 0 ? (
-              <div className="bg-primary-light rounded-xl text-center py-6 border border-border/50">
-                <div className="text-2xl mb-1">📅</div>
-                <p className="text-text-muted text-xs">
+              <div className="bg-primary-light rounded-xl text-center py-8 border border-border/50">
+                <div className="text-3xl md:text-4xl mb-2">📅</div>
+                <p className="text-text-muted text-xs md:text-sm">
                   Nenhum agendamento futuro
                 </p>
               </div>
             ) : (
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {activeUpcomingAppointments.map((app) => {
                   const temporalStatus = getTemporalStatus(
                     app.appointment_date,
@@ -687,7 +710,7 @@ export const Dashboard = () => {
                   return (
                     <div
                       key={app.id}
-                      className={`bg-primary-light rounded-xl p-2.5 border transition-all hover:border-accent/20 ${
+                      className={`bg-primary-light rounded-xl p-3 md:p-4 border transition-all hover:border-accent/20 ${
                         temporalStatus.isLate || temporalStatus.isPast
                           ? "border-red-500/30 bg-red-500/5"
                           : "border-border/50"
@@ -695,22 +718,24 @@ export const Dashboard = () => {
                     >
                       <div className="flex items-center justify-between">
                         <div className="min-w-0">
-                          <p className="font-semibold text-text text-xs truncate">
+                          <p className="font-semibold text-text text-xs md:text-sm truncate">
                             {app.client?.name || "Cliente"}
                           </p>
-                          <p className="text-text-muted text-[10px]">
+                          <p className="text-text-muted text-[10px] md:text-xs">
                             {formatDate(app.appointment_date)} •{" "}
                             {app.appointment_time}
                           </p>
+                          {isDesktop && app.service?.name && (
+                            <p className="text-text-muted text-[10px] md:text-xs">
+                              ✂️ {app.service.name}
+                            </p>
+                          )}
                         </div>
-                        <div className="flex flex-col items-end gap-0.5">
+                        <div className="flex flex-col items-end gap-1">
                           <span
-                            className={`px-1.5 py-0.5 rounded-full text-[8px] font-medium border ${temporalStatus.className}`}
+                            className={`px-1.5 md:px-2 py-0.5 rounded-full text-[8px] md:text-xs font-medium border ${temporalStatus.className}`}
                           >
                             {temporalStatus.label}
-                          </span>
-                          <span className="badge-gold text-[8px] px-1.5 py-0.5">
-                            {app.service?.name || "Serviço"}
                           </span>
                           <div className="flex gap-1">
                             {actions.slice(0, 2).map((action) => {
@@ -757,12 +782,12 @@ export const Dashboard = () => {
             )}
           </section>
 
-          {/* ✅ Ações Rápidas */}
+          {/* ✅ Ações Rápidas - Desktop com mais opções */}
           <section>
-            <h2 className="font-serif text-sm font-bold text-text mb-3">
-              ⚡ Ações
+            <h2 className="font-serif text-base md:text-lg font-bold text-text mb-3">
+              ⚡ Ações Rápidas
             </h2>
-            <nav className="space-y-1.5">
+            <nav className="space-y-1.5 md:space-y-2">
               {[
                 { to: "/agendamentos", label: "Agendamentos", icon: ListIcon },
                 { to: "/clientes", label: "Clientes", icon: UserIcon },
@@ -772,21 +797,61 @@ export const Dashboard = () => {
                   icon: ScissorsIcon,
                 },
                 { to: "/agenda", label: "Agenda", icon: CalendarIcon },
+                ...(isDesktop
+                  ? [
+                      {
+                        to: "/perfil",
+                        label: "Perfil",
+                        icon: UserIcon,
+                      },
+                    ]
+                  : []),
               ].map((item) => (
                 <Link
                   key={item.to}
                   to={item.to}
-                  className="bg-primary-light rounded-xl flex items-center justify-between p-2.5 border border-border/50 hover:border-accent/20 transition-all"
+                  className="bg-primary-light rounded-xl flex items-center justify-between p-2.5 md:p-3 border border-border/50 hover:border-accent/20 transition-all"
                 >
-                  <span className="text-text text-xs flex items-center gap-2">
-                    <item.icon size={14} className="text-accent" />
+                  <span className="text-text text-xs md:text-sm flex items-center gap-2 md:gap-3">
+                    <item.icon
+                      size={isDesktop ? 18 : 14}
+                      className="text-accent"
+                    />
                     {item.label}
                   </span>
-                  <ArrowRightIcon size={14} className="text-accent" />
+                  <ArrowRightIcon
+                    size={isDesktop ? 16 : 14}
+                    className="text-accent"
+                  />
                 </Link>
               ))}
             </nav>
           </section>
+
+          {/* ✅ Resumo Rápido - Apenas Desktop */}
+          {isDesktop && stats && (
+            <section className="bg-gradient-to-br from-accent/5 to-transparent rounded-xl p-4 border border-accent/10">
+              <h3 className="font-serif text-sm font-bold text-text mb-2">
+                📊 Resumo
+              </h3>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <span className="text-text-muted">Média diária:</span>
+                  <p className="text-text font-bold">
+                    {stats.total > 0 ? Math.round(stats.total / 30) : 0}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-text-muted">Taxa de ocupação:</span>
+                  <p className="text-text font-bold">
+                    {stats.total > 0
+                      ? `${Math.round((stats.confirmed / stats.total) * 100)}%`
+                      : "0%"}
+                  </p>
+                </div>
+              </div>
+            </section>
+          )}
         </aside>
       </div>
 

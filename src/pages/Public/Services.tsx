@@ -10,6 +10,8 @@ import {
   CalendarIcon,
   ArrowRightIcon,
   FunnelIcon,
+  ScissorsIcon,
+  ListIcon,
 } from "@phosphor-icons/react";
 import { useApi } from "../../hooks/useApi";
 import { Spinner } from "../../components/Common/Spinner";
@@ -28,6 +30,17 @@ export const Services = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [categories, setCategories] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
+
+  // ✅ Detectar tamanho da tela
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useAuthRedirect({
     redirectTo: "/dashboard",
@@ -91,26 +104,37 @@ export const Services = () => {
 
   return (
     <div className="pb-20">
-      {/* ✅ Cabeçalho - Mobile First */}
-      <div className="flex items-center justify-between mb-4">
+      {/* ✅ Cabeçalho com estatísticas */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 md:mb-6">
         <div>
-          <h1 className="font-serif text-xl font-bold text-text">Serviços</h1>
-          <p className="text-text-muted text-xs">
-            {filteredServices.length} de {services.length} disponíveis
+          <h1 className="font-serif text-xl md:text-2xl font-bold text-text">
+            Serviços
+          </h1>
+          <p className="text-text-muted text-xs md:text-sm">
+            {filteredServices.length} de {services.length} serviços disponíveis
           </p>
         </div>
-        <Link
-          to="/agendar"
-          className="btn-primary text-xs px-4 py-2 rounded-xl inline-flex items-center gap-1.5 min-h-[40px]"
-        >
-          <CalendarIcon size={14} />
-          Agendar
-        </Link>
+        <div className="flex items-center gap-3 mt-3 md:mt-0">
+          {isDesktop && (
+            <div className="flex items-center gap-1.5 text-text-muted text-xs bg-primary-light/50 px-3 py-1.5 rounded-lg border border-border/50">
+              <ListIcon size={14} />
+              <span>{categories.length} categorias</span>
+            </div>
+          )}
+          <Link
+            to="/agendar"
+            className="btn-primary text-xs md:text-sm px-4 md:px-5 py-2 md:py-2.5 rounded-xl inline-flex items-center gap-1.5 min-h-[40px] md:min-h-[44px]"
+          >
+            <CalendarIcon size={isDesktop ? 16 : 14} />
+            Agendar
+          </Link>
+        </div>
       </div>
 
-      {/* ✅ Barra de busca e filtros - Mobile First */}
-      <div className="flex flex-col gap-2 mb-4">
-        <div className="relative">
+      {/* ✅ Barra de busca e filtros - Adaptativa */}
+      <div className="flex flex-col md:flex-row gap-2 md:gap-3 mb-4">
+        {/* Busca */}
+        <div className="relative flex-1">
           <MagnifyingGlassIcon
             size={18}
             className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
@@ -120,11 +144,41 @@ export const Services = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Buscar serviços..."
-            className="w-full pl-10 pr-3 py-3 bg-primary-light border border-border/50 rounded-xl text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all min-h-[44px]"
+            className="w-full pl-10 pr-3 py-3 md:py-2.5 bg-primary-light border border-border/50 rounded-xl text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all min-h-[44px] md:min-h-[40px]"
           />
         </div>
 
-        <div className="flex gap-2">
+        {/* Filtros Desktop - Sempre visíveis */}
+        {isDesktop && categories.length > 0 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+            <button
+              onClick={() => setSelectedCategory("all")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition ${
+                selectedCategory === "all"
+                  ? "bg-accent text-primary-dark"
+                  : "bg-primary-light/50 text-text-muted hover:bg-accent/10 hover:text-text border border-border/50"
+              }`}
+            >
+              Todos
+            </button>
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition ${
+                  selectedCategory === cat
+                    ? "bg-accent text-primary-dark"
+                    : "bg-primary-light/50 text-text-muted hover:bg-accent/10 hover:text-text border border-border/50"
+                }`}
+              >
+                {categoryLabels[cat as keyof typeof categoryLabels] || cat}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Botões Mobile */}
+        <div className="flex gap-2 md:hidden">
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`flex-1 px-3 py-2.5 rounded-xl border transition flex items-center justify-center gap-1.5 text-sm min-h-[44px] ${
@@ -135,11 +189,6 @@ export const Services = () => {
           >
             <FunnelIcon size={16} />
             <span>Filtros</span>
-            {showFilters ? (
-              <span className="text-[10px]">▲</span>
-            ) : (
-              <span className="text-[10px]">▼</span>
-            )}
           </button>
 
           {(searchTerm || selectedCategory !== "all") && (
@@ -154,8 +203,8 @@ export const Services = () => {
         </div>
       </div>
 
-      {/* ✅ Filtros expandíveis - Mobile First */}
-      {showFilters && (
+      {/* ✅ Filtros Mobile (expandíveis) */}
+      {!isDesktop && showFilters && (
         <div className="bg-primary-light rounded-xl p-4 mb-4 border border-border/50 animate-fadeIn">
           <div className="space-y-3">
             <div>
@@ -199,7 +248,7 @@ export const Services = () => {
         </div>
       )}
 
-      {/* ✅ Resultados - Cards Mobile First */}
+      {/* ✅ Resultados - Grid Adaptativo */}
       {filteredServices.length === 0 ? (
         <div className="text-center py-16 bg-primary-light rounded-2xl border border-border/50">
           <div className="text-5xl mb-4">🤔</div>
@@ -223,17 +272,24 @@ export const Services = () => {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3">
+        <div
+          className={`grid ${isDesktop ? "grid-cols-3 lg:grid-cols-4" : "grid-cols-2"} gap-3 md:gap-4`}
+        >
           {filteredServices.map((service) => (
             <Link
               key={service.id}
               to={`/agendar?service=${service.id}`}
-              className="group bg-primary-light rounded-2xl p-4 border border-border/50 hover:border-accent/30 transition-all active:scale-[0.97]"
+              className="group bg-primary-light rounded-2xl p-4 md:p-5 border border-border/50 hover:border-accent/30 transition-all active:scale-[0.97]"
             >
               {/* Ícone e Badge */}
               <div className="flex items-start justify-between mb-3">
-                <div className="w-12 h-12 bg-accent/10 rounded-xl flex items-center justify-center group-hover:bg-accent/20 transition flex-shrink-0">
-                  <ServiceIcon category={service.category} size={22} />
+                <div
+                  className={`${isDesktop ? "w-14 h-14" : "w-12 h-12"} bg-accent/10 rounded-xl flex items-center justify-center group-hover:bg-accent/20 transition flex-shrink-0`}
+                >
+                  <ServiceIcon
+                    category={service.category}
+                    size={isDesktop ? 24 : 22}
+                  />
                 </div>
                 {service.category && (
                   <span className="badge-gold text-[8px] capitalize px-2 py-0.5">
@@ -245,24 +301,24 @@ export const Services = () => {
               </div>
 
               {/* Nome */}
-              <h3 className="font-semibold text-text text-sm leading-tight group-hover:text-accent transition line-clamp-1">
+              <h3 className="font-semibold text-text text-sm md:text-base leading-tight group-hover:text-accent transition line-clamp-1">
                 {service.name}
               </h3>
 
               {/* Descrição */}
               {service.description && (
-                <p className="text-text-muted text-xs mt-1 line-clamp-1">
+                <p className="text-text-muted text-xs md:text-sm mt-1 line-clamp-2">
                   {service.description}
                 </p>
               )}
 
               {/* Preço e Duração */}
               <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
-                <span className="text-accent font-bold text-sm">
+                <span className="text-accent font-bold text-sm md:text-base">
                   {formatPrice(service.price)}
                 </span>
-                <span className="text-text-muted text-xs flex items-center gap-1">
-                  <ClockIcon size={12} />
+                <span className="text-text-muted text-xs md:text-sm flex items-center gap-1">
+                  <ClockIcon size={isDesktop ? 14 : 12} />
                   {service.duration_minutes}min
                 </span>
               </div>
@@ -271,24 +327,25 @@ export const Services = () => {
         </div>
       )}
 
-      {/* ✅ Call to Action - Mobile First */}
+      {/* ✅ Call to Action */}
       {filteredServices.length > 0 && (
-        <div className="mt-6 bg-gradient-to-r from-accent/10 via-accent/5 to-transparent rounded-2xl p-4 border border-accent/10">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h3 className="font-serif text-sm font-bold text-text">
+        <div className="mt-6 md:mt-8 bg-gradient-to-r from-accent/10 via-accent/5 to-transparent rounded-2xl p-4 md:p-6 border border-accent/10">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+            <div className="text-center md:text-left">
+              <h3 className="font-serif text-sm md:text-base font-bold text-text">
                 Pronto para escolher?
               </h3>
-              <p className="text-text-muted text-xs">
-                Agende seu horário agora
+              <p className="text-text-muted text-xs md:text-sm">
+                Agende seu horário agora e transforme seu visual
               </p>
             </div>
             <Link
               to="/agendar"
-              className="btn-primary text-sm px-4 py-2.5 rounded-xl inline-flex items-center gap-1.5 flex-shrink-0 min-h-[44px]"
+              className="btn-primary text-sm px-6 py-3 rounded-xl inline-flex items-center gap-2 flex-shrink-0 min-h-[44px] w-full md:w-auto justify-center"
             >
-              <CalendarIcon size={16} />
+              <CalendarIcon size={isDesktop ? 18 : 16} />
               Agendar
+              <ArrowRightIcon size={14} />
             </Link>
           </div>
         </div>

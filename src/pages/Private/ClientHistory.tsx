@@ -27,11 +27,13 @@ import {
   HourglassIcon,
   CaretCircleRightIcon,
   PlusIcon,
+  ChartBarIcon,
 } from "@phosphor-icons/react";
 import { useApi } from "../../hooks/useApi";
 import { Spinner } from "../../components/Common/Spinner";
 import { ServiceIcon } from "../../components/Common/ServiceIcon";
 import { Button } from "../../components/Common/Button";
+import { ConfirmPopup } from "../../components/Common/ConfirmPopup";
 import { formatPrice } from "../../utils/formatPrice";
 import { formatDate } from "../../utils/formatDate";
 import {
@@ -40,6 +42,11 @@ import {
   getMonthLabel,
   hasClientHistory,
 } from "../../utils/clientHistory";
+import {
+  getTemporalStatus,
+  canConfirmAppointment,
+  canCancelAppointment,
+} from "../../utils/appointmentStatus";
 import type {
   Appointment,
   Client,
@@ -57,6 +64,17 @@ export const ClientHistory = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
+
+  // ✅ Detectar tamanho da tela
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // ✅ Ref para controlar se a requisição já foi feita
   const hasFetched = useRef(false);
@@ -72,7 +90,6 @@ export const ClientHistory = () => {
 
   // ✅ Função de busca com useCallback e controle de execução
   const fetchClientHistory = useCallback(async () => {
-    // ✅ Evitar múltiplas requisições
     if (hasFetched.current) return;
     hasFetched.current = true;
 
@@ -90,7 +107,6 @@ export const ClientHistory = () => {
       ]);
 
       setClient(clientData);
-      // ✅ historyData já é o array de appointments
       setAppointments(Array.isArray(historyData) ? historyData : []);
     } catch (error: any) {
       console.error("Erro ao carregar histórico:", error);
@@ -103,20 +119,48 @@ export const ClientHistory = () => {
     }
   }, [clientId, navigate, handleRequest, endpoints.clients]);
 
-  // ✅ useEffect com dependências corretas
   useEffect(() => {
     fetchClientHistory();
   }, [fetchClientHistory]);
 
-  // ✅ stats com tipagem correta
   const stats: ClientHistoryStats = useMemo(() => {
     return calculateClientHistoryStats(appointments || []);
   }, [appointments]);
 
-  // ✅ groupedAppointments com tipagem correta
+  // ✅ Ordenar agendamentos por data (mais recentes primeiro) e status (futuros/pendentes primeiro)
   const groupedAppointments = useMemo(() => {
-    return groupAppointmentsByMonth(appointments || []);
+    const groups = groupAppointmentsByMonth(appointments || []);
+
+    const sortedGroups: Record<string, Appointment[]> = {};
+    Object.entries(groups).forEach(([monthKey, monthApps]) => {
+      const sorted = [...monthApps].sort((a, b) => {
+        const priorityA =
+          a.status === "pending" || a.status === "confirmed" ? 0 : 1;
+        const priorityB =
+          b.status === "pending" || b.status === "confirmed" ? 0 : 1;
+
+        if (priorityA !== priorityB) {
+          return priorityA - priorityB;
+        }
+
+        const dateA = new Date(a.appointment_date + "T" + a.appointment_time);
+        const dateB = new Date(b.appointment_date + "T" + b.appointment_time);
+        return dateB.getTime() - dateA.getTime();
+      });
+
+      sortedGroups[monthKey] = sorted;
+    });
+
+    return sortedGroups;
   }, [appointments]);
+
+  // ✅ No desktop, expandir todos os meses automaticamente
+  useEffect(() => {
+    if (isDesktop && Object.keys(groupedAppointments).length > 0) {
+      const allMonths = Object.keys(groupedAppointments);
+      setExpandedMonths(new Set(allMonths));
+    }
+  }, [isDesktop, groupedAppointments]);
 
   const toggleMonth = (monthKey: string) => {
     setExpandedMonths((prev) => {
@@ -169,9 +213,80 @@ export const ClientHistory = () => {
     return statusMap[status] || statusMap.pending;
   };
 
+  // ✅ Função para confirmar agendamento
+  const handleConfirm = async (appointment: Appointment) => {
+    const temporalStatus = getTemporalStatus(
+      appointment.appointment_date,
+      appointment.appointment_time,
+      appointment.status,
+    );
+
+    if (temporalStatus.isPast || temporalStatus.isLate) {
+      toast.warning(
+        "Este agendamento está atrasado ou já passou. Considere reagendar ou cancelar.",
+      );
+      return;
+    }
+
+    try {
+      await handleRequest(endpoints.appointments.confirm(appointment.id));
+      toast.success("✅ Agendamento confirmado!");
+
+      setAppointments((prev) =>
+        prev.map((app) =>
+          app.id === appointment.id
+            ? { ...app, status: "confirmed" as StatusType }
+            : app,
+        ),
+      );
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message || "Erro ao confirmar agendamento";
+      toast.error(`❌ ${message}`);
+    }
+  };
+
+  // ✅ Função para cancelar agendamento
+  const handleCancel = async (appointment: Appointment) => {
+    try {
+      await handleRequest(
+        endpoints.appointments.cancel(
+          appointment.id,
+          "Cancelado pelo barbeiro",
+        ),
+      );
+      toast.info("❌ Agendamento cancelado!");
+
+      setAppointments((prev) =>
+        prev.map((app) =>
+          app.id === appointment.id
+            ? { ...app, status: "cancelled" as StatusType }
+            : app,
+        ),
+      );
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message || "Erro ao cancelar agendamento";
+      toast.error(`❌ ${message}`);
+    }
+  };
+
   useEffect(() => {
     document.title = `Histórico de ${client?.name || "Cliente"} | Barbearia`;
   }, [client?.name]);
+
+  // ✅ Função para navegar para agendamento com dados do cliente
+  const navigateToSchedule = () => {
+    if (!client) return;
+
+    const params = new URLSearchParams({
+      clientId: String(client.id),
+      clientName: client.name,
+      clientPhone: client.phone,
+    });
+
+    navigate(`/agendar?${params.toString()}`);
+  };
 
   if (loading || isLoading) {
     return (
@@ -206,135 +321,168 @@ export const ClientHistory = () => {
   const hasHistory = hasClientHistory(appointments);
 
   return (
-    <div className="pb-20">
-      {/* ✅ Header Mobile - Navegação */}
-      <div className="flex items-center gap-2 mb-4">
-        <button
-          onClick={() => navigate("/clientes")}
-          className="p-2 text-text-muted hover:text-accent transition rounded-xl hover:bg-accent/5"
-        >
-          <ArrowLeftIcon size={18} />
-        </button>
-        <div>
-          <h1 className="font-serif text-lg font-bold text-text">
-            Histórico do Cliente
-          </h1>
-          <p className="text-text-muted text-xs">
-            {client.name} • {client.phone}
-          </p>
-        </div>
-      </div>
-
-      {/* ✅ Card do Cliente - Compacto */}
-      <div className="bg-primary-light rounded-xl p-4 border border-border/50 mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-accent/10 rounded-xl flex items-center justify-center flex-shrink-0">
-            <UserIcon size={24} className="text-accent" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-text text-base truncate">
-              {client.name}
+    <div className="pb-20 max-w-6xl mx-auto">
+      {/* ✅ Header com Navegação */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate("/clientes")}
+            className="p-2 text-text-muted hover:text-accent transition rounded-xl hover:bg-accent/5"
+          >
+            <ArrowLeftIcon size={18} />
+          </button>
+          <div>
+            <h1 className="font-serif text-lg md:text-2xl font-bold text-text">
+              Histórico do Cliente
+            </h1>
+            <p className="text-text-muted text-xs md:text-sm">
+              {client.name} • {client.phone}
             </p>
-            <div className="flex flex-wrap items-center gap-2 text-xs text-text-muted">
-              <span className="flex items-center gap-0.5">
-                <PhoneIcon size={12} />
-                {client.phone}
-              </span>
-              <span className="w-0.5 h-0.5 bg-text-muted rounded-full" />
-              <span className="flex items-center gap-0.5">
-                <CalendarIcon size={12} />
-                Cliente desde {formatDate(client.created_at)}
-              </span>
+          </div>
+        </div>
+        {isDesktop && (
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 text-text-muted text-xs bg-primary-light/50 px-3 py-1.5 rounded-lg border border-border/50">
+              <ChartBarIcon size={14} className="text-accent" />
+              <span className="font-medium">Total:</span>
+              <span className="text-text font-bold">{appointments.length}</span>
             </div>
           </div>
-          <span
-            className={`px-2 py-1 rounded-full text-[8px] font-medium border ${
-              client.is_active
-                ? "bg-green-500/10 text-green-500 border-green-500/30"
-                : "bg-red-500/10 text-red-500 border-red-500/30"
-            }`}
-          >
-            {client.is_active ? "Ativo" : "Inativo"}
-          </span>
+        )}
+      </div>
+
+      {/* ✅ Card do Cliente - Adaptativo */}
+      <div className="bg-primary-light rounded-xl p-4 md:p-6 border border-border/50 mb-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 md:w-16 md:h-16 bg-accent/10 rounded-xl flex items-center justify-center flex-shrink-0">
+              <UserIcon size={isDesktop ? 32 : 24} className="text-accent" />
+            </div>
+            <div>
+              <p className="font-semibold text-text text-base md:text-lg truncate">
+                {client.name}
+              </p>
+              <div className="flex flex-wrap items-center gap-2 text-xs md:text-sm text-text-muted">
+                <span className="flex items-center gap-0.5">
+                  <PhoneIcon size={isDesktop ? 14 : 12} />
+                  {client.phone}
+                </span>
+                <span className="w-0.5 h-0.5 bg-text-muted rounded-full" />
+                <span className="flex items-center gap-0.5">
+                  <CalendarIcon size={isDesktop ? 14 : 12} />
+                  Cliente desde {formatDate(client.created_at)}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span
+              className={`px-2 md:px-3 py-1 rounded-full text-[10px] md:text-xs font-medium border ${
+                client.is_active
+                  ? "bg-green-500/10 text-green-500 border-green-500/30"
+                  : "bg-red-500/10 text-red-500 border-red-500/30"
+              }`}
+            >
+              {client.is_active ? "Ativo" : "Inativo"}
+            </span>
+
+            <button
+              onClick={navigateToSchedule}
+              className="btn-primary text-sm px-3 md:px-4 py-2 rounded-xl inline-flex items-center gap-1.5"
+            >
+              <PlusIcon size={isDesktop ? 18 : 16} />
+              <span className="hidden xs:inline">Novo Agendamento</span>
+              <span className="xs:hidden">Agendar</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* ✅ Cards de Estatísticas - Compactos */}
-      <div className="grid grid-cols-2 gap-2 mb-4">
-        <div className="bg-primary-light rounded-xl p-3 border border-border/50">
+      {/* ✅ Cards de Estatísticas - Grid adaptativo */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 mb-4">
+        <div className="bg-primary-light rounded-xl p-3 md:p-4 border border-border/50">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-text-muted text-[10px] font-medium uppercase tracking-wider">
+              <p className="text-text-muted text-[10px] md:text-xs font-medium uppercase tracking-wider">
                 Agendamentos
               </p>
-              <p className="text-lg font-bold text-text">
+              <p className="text-lg md:text-2xl font-bold text-text">
                 {stats.totalAppointments}
               </p>
             </div>
-            <div className="w-8 h-8 bg-accent/10 rounded-lg flex items-center justify-center">
-              <ListIcon size={16} className="text-accent" />
+            <div className="w-8 h-8 md:w-10 md:h-10 bg-accent/10 rounded-lg flex items-center justify-center">
+              <ListIcon size={isDesktop ? 20 : 16} className="text-accent" />
             </div>
           </div>
         </div>
 
-        <div className="bg-primary-light rounded-xl p-3 border border-accent/20">
+        <div className="bg-primary-light rounded-xl p-3 md:p-4 border border-accent/20">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-text-muted text-[10px] font-medium uppercase tracking-wider">
+              <p className="text-text-muted text-[10px] md:text-xs font-medium uppercase tracking-wider">
                 Gasto Total
               </p>
-              <p className="text-sm font-bold text-accent">
+              <p className="text-sm md:text-base font-bold text-accent">
                 {stats.totalSpent > 0
                   ? formatPrice(stats.totalSpent)
                   : "R$ 0,00"}
               </p>
             </div>
-            <div className="w-8 h-8 bg-accent/10 rounded-lg flex items-center justify-center">
-              <MoneyIcon size={16} className="text-accent" />
+            <div className="w-8 h-8 md:w-10 md:h-10 bg-accent/10 rounded-lg flex items-center justify-center">
+              <MoneyIcon size={isDesktop ? 20 : 16} className="text-accent" />
             </div>
           </div>
         </div>
 
-        <div className="bg-primary-light rounded-xl p-3 border border-blue-500/20">
+        <div className="bg-primary-light rounded-xl p-3 md:p-4 border border-blue-500/20">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-text-muted text-[10px] font-medium uppercase tracking-wider">
+              <p className="text-text-muted text-[10px] md:text-xs font-medium uppercase tracking-wider">
                 Ticket Médio
               </p>
-              <p className="text-sm font-bold text-blue-500">
+              <p className="text-sm md:text-base font-bold text-blue-500">
                 {stats.averageTicket > 0
                   ? formatPrice(stats.averageTicket)
                   : "R$ 0,00"}
               </p>
             </div>
-            <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center">
-              <TrendUpIcon size={16} className="text-blue-500" />
+            <div className="w-8 h-8 md:w-10 md:h-10 bg-blue-500/10 rounded-lg flex items-center justify-center">
+              <TrendUpIcon
+                size={isDesktop ? 20 : 16}
+                className="text-blue-500"
+              />
             </div>
           </div>
         </div>
 
-        <div className="bg-primary-light rounded-xl p-3 border border-purple-500/20">
+        <div className="bg-primary-light rounded-xl p-3 md:p-4 border border-purple-500/20">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-text-muted text-[10px] font-medium uppercase tracking-wider">
+              <p className="text-text-muted text-[10px] md:text-xs font-medium uppercase tracking-wider">
                 Serviço Favorito
               </p>
-              <p className="text-text text-xs font-semibold truncate">
+              <p className="text-text text-xs md:text-sm font-semibold truncate">
                 {stats.mostUsedService || "Nenhum"}
               </p>
             </div>
-            <div className="w-8 h-8 bg-purple-500/10 rounded-lg flex items-center justify-center">
-              <ScissorsIcon size={16} className="text-purple-500" />
+            <div className="w-8 h-8 md:w-10 md:h-10 bg-purple-500/10 rounded-lg flex items-center justify-center">
+              <ScissorsIcon
+                size={isDesktop ? 20 : 16}
+                className="text-purple-500"
+              />
             </div>
           </div>
         </div>
       </div>
 
-      {/* ✅ Timeline de Agendamentos */}
+      {/* ✅ Timeline de Agendamentos com Ações Melhoradas */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-serif text-sm font-bold text-text flex items-center gap-1.5">
-            <ClockCounterClockwiseIcon size={16} className="text-accent" />
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-3">
+          <h2 className="font-serif text-base md:text-lg font-bold text-text flex items-center gap-2">
+            <ClockCounterClockwiseIcon
+              size={isDesktop ? 20 : 16}
+              className="text-accent"
+            />
             Histórico
           </h2>
           <div className="flex gap-1.5">
@@ -342,13 +490,13 @@ export const ClientHistory = () => {
               <>
                 <button
                   onClick={expandAll}
-                  className="text-[10px] px-2 py-1 bg-accent/10 text-accent rounded-lg hover:bg-accent/20 transition"
+                  className="text-[10px] md:text-xs px-2 md:px-3 py-1 bg-accent/10 text-accent rounded-lg hover:bg-accent/20 transition"
                 >
                   Expandir
                 </button>
                 <button
                   onClick={collapseAll}
-                  className="text-[10px] px-2 py-1 bg-primary-light text-text-muted rounded-lg hover:bg-primary transition border border-border/50"
+                  className="text-[10px] md:text-xs px-2 md:px-3 py-1 bg-primary-light text-text-muted rounded-lg hover:bg-primary transition border border-border/50"
                 >
                   Recolher
                 </button>
@@ -358,19 +506,26 @@ export const ClientHistory = () => {
         </div>
 
         {!hasHistory ? (
-          <div className="text-center py-16 bg-primary-light rounded-xl border border-border/50">
-            <div className="text-5xl mb-4" aria-hidden="true">
+          <div className="text-center py-16 md:py-20 bg-primary-light rounded-2xl border border-border/50">
+            <div className="text-5xl md:text-6xl mb-4" aria-hidden="true">
               📭
             </div>
-            <h3 className="font-serif text-lg font-bold text-text mb-2">
+            <h3 className="font-serif text-lg md:text-xl font-bold text-text mb-2">
               Nenhum agendamento encontrado
             </h3>
-            <p className="text-text-muted text-sm max-w-xs mx-auto">
+            <p className="text-text-muted text-sm md:text-base max-w-sm mx-auto">
               {client.name} ainda não realizou nenhum agendamento na barbearia.
             </p>
+            <button
+              onClick={navigateToSchedule}
+              className="btn-primary text-sm px-4 py-2 rounded-xl inline-flex items-center gap-1.5 mt-4"
+            >
+              <PlusIcon size={16} />
+              Criar primeiro agendamento
+            </button>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-2 md:space-y-3">
             {Object.entries(groupedAppointments).map(
               ([monthKey, monthApps]) => {
                 const isExpanded = expandedMonths.has(monthKey);
@@ -386,20 +541,22 @@ export const ClientHistory = () => {
                     key={monthKey}
                     className="bg-primary-light rounded-xl border border-border/50 overflow-hidden"
                   >
-                    {/* ✅ Cabeçalho do Mês - Touch-friendly */}
                     <button
                       onClick={() => toggleMonth(monthKey)}
-                      className="w-full flex items-center justify-between p-3 hover:bg-accent/5 transition active:scale-[0.99]"
+                      className="w-full flex items-center justify-between p-3 md:p-4 hover:bg-accent/5 transition active:scale-[0.99]"
                     >
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-accent/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <CalendarIcon size={14} className="text-accent" />
+                      <div className="flex items-center gap-2 md:gap-3">
+                        <div className="w-8 h-8 md:w-10 md:h-10 bg-accent/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <CalendarIcon
+                            size={isDesktop ? 18 : 14}
+                            className="text-accent"
+                          />
                         </div>
                         <div className="text-left">
-                          <p className="font-semibold text-text text-sm capitalize">
+                          <p className="font-semibold text-text text-sm md:text-base capitalize">
                             {monthLabel}
                           </p>
-                          <p className="text-text-muted text-[10px]">
+                          <p className="text-text-muted text-[10px] md:text-xs">
                             {monthTotal} agendamento(s) •{" "}
                             {formatPrice(monthSpent)}
                           </p>
@@ -410,7 +567,7 @@ export const ClientHistory = () => {
                           {monthTotal}
                         </span>
                         <CaretCircleRightIcon
-                          size={18}
+                          size={isDesktop ? 22 : 18}
                           className={`text-accent transition-transform duration-300 ${
                             isExpanded ? "rotate-90" : ""
                           }`}
@@ -418,74 +575,127 @@ export const ClientHistory = () => {
                       </div>
                     </button>
 
-                    {/* ✅ Lista de Agendamentos do Mês */}
                     {isExpanded && (
                       <div className="border-t border-border/50 divide-y divide-border/30 animate-fadeIn">
                         {monthApps.map((app) => {
                           const status = getStatusBadge(app.status);
+                          const temporalStatus = getTemporalStatus(
+                            app.appointment_date,
+                            app.appointment_time,
+                            app.status,
+                          );
+                          const isActive =
+                            app.status === "pending" ||
+                            app.status === "confirmed";
+                          const canConfirm =
+                            isActive &&
+                            !temporalStatus.isPast &&
+                            !temporalStatus.isLate &&
+                            app.status === "pending";
+
                           return (
                             <div
                               key={app.id}
-                              className="p-3 hover:bg-accent/5 transition"
+                              className="p-3 md:p-4 hover:bg-accent/5 transition border-b border-border/30 last:border-0"
                             >
-                              <div className="flex items-start gap-3">
-                                {/* Ícone do Serviço */}
-                                <div className="w-8 h-8 bg-accent/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                                  {app.service?.category ? (
-                                    <ServiceIcon
-                                      category={app.service.category}
-                                      size={14}
-                                    />
-                                  ) : (
-                                    <ScissorsIcon
-                                      size={14}
-                                      className="text-accent"
-                                    />
-                                  )}
-                                </div>
-
-                                {/* Detalhes */}
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-start justify-between gap-2">
-                                    <div>
-                                      <p className="font-semibold text-text text-sm truncate">
-                                        {app.service?.name || "Serviço"}
-                                      </p>
-                                      <div className="flex flex-wrap items-center gap-2 text-xs text-text-muted">
-                                        <span className="flex items-center gap-0.5">
-                                          <CalendarIcon size={10} />
-                                          {formatDate(app.appointment_date)}
-                                        </span>
-                                        <span className="w-0.5 h-0.5 bg-text-muted rounded-full" />
-                                        <span className="flex items-center gap-0.5">
-                                          <ClockIcon size={10} />
-                                          {app.appointment_time}
-                                        </span>
-                                      </div>
-                                    </div>
-                                    <span className="text-accent font-bold text-sm whitespace-nowrap">
-                                      {formatPrice(
-                                        Number(app.service?.price) || 0,
-                                      )}
-                                    </span>
-                                  </div>
-
-                                  {/* Status */}
-                                  <div className="flex items-center gap-2 mt-1.5">
-                                    <span
-                                      className={`px-2 py-0.5 rounded-full text-[8px] font-medium border flex items-center gap-0.5 ${status.className}`}
-                                    >
-                                      {status.icon}
-                                      {status.label}
-                                    </span>
-                                    {app.notes && (
-                                      <span className="text-text-muted text-[10px] truncate max-w-[150px]">
-                                        • {app.notes}
-                                      </span>
+                              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                                <div className="flex items-start gap-3 flex-1">
+                                  <div className="w-8 h-8 md:w-10 md:h-10 bg-accent/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    {app.service?.category ? (
+                                      <ServiceIcon
+                                        category={app.service.category}
+                                        size={isDesktop ? 18 : 14}
+                                      />
+                                    ) : (
+                                      <ScissorsIcon
+                                        size={isDesktop ? 18 : 14}
+                                        className="text-accent"
+                                      />
                                     )}
                                   </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="font-semibold text-text text-sm md:text-base truncate">
+                                      {app.service?.name || "Serviço"}
+                                    </p>
+                                    <div className="flex flex-wrap items-center gap-2 text-xs md:text-sm text-text-muted">
+                                      <span className="flex items-center gap-0.5">
+                                        <CalendarIcon
+                                          size={isDesktop ? 14 : 10}
+                                        />
+                                        {formatDate(app.appointment_date)}
+                                      </span>
+                                      <span className="w-0.5 h-0.5 bg-text-muted rounded-full" />
+                                      <span className="flex items-center gap-0.5">
+                                        <ClockIcon size={isDesktop ? 14 : 10} />
+                                        {app.appointment_time}
+                                      </span>
+                                      {isDesktop && app.client?.name && (
+                                        <>
+                                          <span className="w-0.5 h-0.5 bg-text-muted rounded-full" />
+                                          <span className="flex items-center gap-0.5">
+                                            <UserIcon size={14} />
+                                            {app.client.name}
+                                          </span>
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="text-accent font-bold text-sm md:text-base whitespace-nowrap">
+                                    {formatPrice(
+                                      Number(app.service?.price) || 0,
+                                    )}
+                                  </span>
+                                  <span
+                                    className={`px-1.5 md:px-2 py-0.5 rounded-full text-[8px] md:text-xs font-medium border flex items-center gap-0.5 ${status.className}`}
+                                  >
+                                    {status.icon}
+                                    {status.label}
+                                  </span>
+
+                                  {/* ✅ Botões de Ação - Otimizados para Mobile */}
+                                  {isActive && (
+                                    <div className="flex items-center gap-2">
+                                      {canConfirm && (
+                                        <button
+                                          onClick={() => handleConfirm(app)}
+                                          className="flex items-center gap-1.5 px-3 py-2 bg-green-500/20 text-green-500 rounded-xl hover:bg-green-500/30 transition active:scale-[0.95] min-h-[44px] min-w-[44px]"
+                                          title="Confirmar"
+                                        >
+                                          <CheckCircleIcon size={18} />
+                                          <span className="text-xs font-medium hidden xs:inline">
+                                            Confirmar
+                                          </span>
+                                        </button>
+                                      )}
+                                      <ConfirmPopup
+                                        trigger={
+                                          <button className="flex items-center gap-1.5 px-3 py-2 bg-red-500/20 text-red-500 rounded-xl hover:bg-red-500/30 transition active:scale-[0.95] min-h-[44px] min-w-[44px]">
+                                            <XCircleIcon size={18} />
+                                            <span className="text-xs font-medium hidden xs:inline">
+                                              Cancelar
+                                            </span>
+                                          </button>
+                                        }
+                                        onConfirm={() => handleCancel(app)}
+                                        title="Cancelar Agendamento"
+                                        message={`Tem certeza que deseja cancelar o agendamento de ${app.client?.name || "cliente"}?`}
+                                        confirmText="Cancelar"
+                                        cancelText="Voltar"
+                                        variant="danger"
+                                        size="sm"
+                                      />
+                                    </div>
+                                  )}
                                 </div>
                               </div>
+                              {app.notes && (
+                                <div className="mt-2 text-text-muted text-xs">
+                                  <span className="font-medium">Obs:</span>{" "}
+                                  {app.notes}
+                                </div>
+                              )}
                             </div>
                           );
                         })}
@@ -501,19 +711,35 @@ export const ClientHistory = () => {
 
       {/* ✅ Ações Rápidas */}
       <div className="mt-4">
-        <h2 className="font-serif text-sm font-bold text-text mb-3">
-          ⚡ Ações
+        <h2 className="font-serif text-base md:text-lg font-bold text-text mb-3">
+          Ações
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
           <Link
             to={`/agendamentos?clientId=${client.id}`}
-            className="bg-primary-light rounded-xl p-3 border border-border/50 hover:border-accent/20 transition text-center"
+            className="bg-primary-light rounded-xl p-3 md:p-4 border border-border/50 hover:border-accent/20 transition text-center"
           >
-            <div className="w-8 h-8 bg-accent/10 rounded-lg flex items-center justify-center mx-auto mb-1.5">
-              <CalendarIcon size={16} className="text-accent" />
+            <div className="w-8 h-8 md:w-10 md:h-10 bg-accent/10 rounded-lg flex items-center justify-center mx-auto mb-1.5">
+              <CalendarIcon
+                size={isDesktop ? 20 : 16}
+                className="text-accent"
+              />
             </div>
-            <p className="text-text text-xs font-medium">Ver Agendamentos</p>
+            <p className="text-text text-xs md:text-sm font-medium">
+              Ver Agendamentos
+            </p>
           </Link>
+          <button
+            onClick={navigateToSchedule}
+            className="bg-primary-light rounded-xl p-3 md:p-4 border border-border/50 hover:border-accent/20 transition text-center"
+          >
+            <div className="w-8 h-8 md:w-10 md:h-10 bg-accent/10 rounded-lg flex items-center justify-center mx-auto mb-1.5">
+              <PlusIcon size={isDesktop ? 20 : 16} className="text-accent" />
+            </div>
+            <p className="text-text text-xs md:text-sm font-medium">
+              Novo Agendamento
+            </p>
+          </button>
         </div>
       </div>
     </div>

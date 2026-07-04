@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/pages/Private/Perfil.tsx
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -33,6 +34,7 @@ import { formatPrice } from "../../utils/formatPrice";
 import { useGuestRedirect } from "../../hooks/useGuestRedirect";
 import { fetchBarberStats } from "../../utils/barberStats";
 import { fetchAddressByCep } from "../../services/cepService";
+import { prepareProfileData, validateProfileData } from "../../utils/cleanData";
 import type {
   BarberStats,
   UpdateProfileData,
@@ -79,7 +81,6 @@ export const Perfil = () => {
   // ✅ Ref para controlar se a requisição já foi feita
   const hasLoaded = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  // ✅ Corrigido: usar ReturnType<typeof setTimeout> em vez de NodeJS.Timeout
   const cepTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useGuestRedirect({
@@ -156,12 +157,10 @@ export const Perfil = () => {
     const value = e.target.value;
     setFormData({ ...formData, zip_code: value });
 
-    // Limpar timeout anterior
     if (cepTimeoutRef.current) {
       clearTimeout(cepTimeoutRef.current);
     }
 
-    // ✅ Buscar automaticamente após 500ms de inatividade
     const cleanedCep = value.replace(/\D/g, "");
     if (cleanedCep.length === 8) {
       cepTimeoutRef.current = setTimeout(() => {
@@ -307,29 +306,31 @@ export const Perfil = () => {
     });
   };
 
+  // ✅ Função handleSave atualizada com validação e limpeza de dados
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // ✅ Preparar dados para envio (remover campos vazios)
+    const updateData = prepareProfileData(formData);
+
+    // ✅ Validar dados
+    const { valid, errors } = validateProfileData(updateData);
+    if (!valid) {
+      errors.forEach((err) => toast.warning(`⚠️ ${err}`));
+      return;
+    }
+
+    // ✅ Verificar se há dados para enviar
+    if (Object.keys(updateData).length === 0) {
+      toast.warning("Nenhum dado para atualizar");
+      return;
+    }
+
     setIsSaving(true);
 
     try {
       const response = await handleRequest(
-        endpoints.auth.updateProfile({
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          avatar_url: formData.avatar_url,
-          address: formData.address,
-          address_number: formData.address_number,
-          neighborhood: formData.neighborhood,
-          city: formData.city,
-          state: formData.state,
-          zip_code: formData.zip_code,
-          working_hours: formData.working_hours,
-          whatsapp: formData.whatsapp,
-          instagram: formData.instagram,
-          facebook: formData.facebook,
-          google_maps_url: formData.google_maps_url,
-        }),
+        endpoints.auth.updateProfile(updateData),
       );
 
       if (response?.barber) {
@@ -354,9 +355,22 @@ export const Perfil = () => {
 
       toast.success(response?.message || "Perfil atualizado com sucesso!");
       setIsEditing(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao atualizar perfil:", error);
-      toast.error("Erro ao atualizar perfil");
+
+      // ✅ Mensagem de erro mais amigável
+      let errorMessage =
+        "Erro ao atualizar perfil. Verifique os campos e tente novamente.";
+
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      toast.error(`❌ ${errorMessage}`);
     } finally {
       setIsSaving(false);
     }

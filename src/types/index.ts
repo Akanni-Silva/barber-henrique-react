@@ -1,15 +1,16 @@
-// src/types/index.ts
+
 
 import {
   DotsThreeIcon,
-  GitlabLogoSimpleIcon,
   HairDryerIcon,
   HandIcon,
+  HockeyIcon,
   PackageIcon,
   PaintBrushHouseholdIcon,
   PaletteIcon,
   ScissorsIcon,
 } from "@phosphor-icons/react";
+
 
 
 export interface ActionItem {
@@ -232,7 +233,7 @@ export const categoryIconMap: Record<ProductCategory, string> = {
 // ✅ Mapeamento para ícones do Phosphor
 export const categoryPhosphorIcon: Record<ProductCategory, string> = {
   corte: "ScissorsIcon",
-  barba: "GitlabLogoSimpleIcon",
+  barba: "HockeyIcon",
   coloracao: "PaintBrushHouseholdIcon",
   tratamento: "HandIcon",
   estilizacao: "HairDryerIcon",
@@ -243,7 +244,7 @@ export const categoryPhosphorIcon: Record<ProductCategory, string> = {
 export const phosphorIcons = {
   PaintBrushHouseholdIcon,
   ScissorsIcon,
-  GitlabLogoSimpleIcon,
+  HockeyIcon,
   PaletteIcon,
   HandIcon,
   HairDryerIcon,

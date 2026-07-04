@@ -60,7 +60,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   return (
     <>
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* ✅ Email - Mobile First */}
+        {/*  Email - Mobile First */}
         <div className="bg-primary-light rounded-xl p-4 border border-border/50">
           <div className="bg-primary/50 rounded-lg p-1">
             <Input
@@ -83,7 +83,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           </div>
         </div>
 
-        {/* ✅ Senha - Mobile First */}
+        {/*  Senha - Mobile First */}
         <div className="bg-primary-light rounded-xl p-4 border border-border/50">
           <div className="bg-primary/50 rounded-lg p-1">
             <Input
@@ -108,7 +108,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           </div>
         </div>
 
-        {/* ✅ Link Esqueceu a Senha - AGORA FUNCIONAL */}
+        {/*  Link Esqueceu a Senha - AGORA FUNCIONAL */}
         <div className="text-right">
           <button
             type="button"
@@ -126,7 +126,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           </div>
         )}
 
-        {/* ✅ Botão de submit - Mobile First */}
+        {/*  Botão de submit - Mobile First */}
         <button
           type="submit"
           disabled={loading}
@@ -146,13 +146,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           )}
         </button>
 
-        {/* ✅ Diferencial - Mobile First */}
+        {/*  Diferencial - Mobile First */}
         <div className="flex items-center justify-center gap-2 text-text-muted text-xs">
           <CheckCircleIcon size={14} className="text-accent" />
           <span>Login seguro e rápido</span>
         </div>
 
-        {/* ✅ Link para registro - Mobile First */}
+        {/*  Link para registro - Mobile First */}
         <div className="text-center pt-2">
           <p className="text-text-muted text-sm">
             Não tem uma conta?{" "}
@@ -167,7 +167,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         </div>
       </form>
 
-      {/* ✅ Modal de Recuperação de Senha */}
+      {/*  Modal de Recuperação de Senha */}
       <ForgotPasswordModal
         isOpen={showForgotPassword}
         onClose={() => setShowForgotPassword(false)}

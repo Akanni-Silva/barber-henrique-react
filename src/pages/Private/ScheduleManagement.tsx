@@ -13,6 +13,8 @@ import {
   CopySimpleIcon,
   ArrowLeftIcon,
   TrashIcon,
+  CalendarIcon,
+  ListIcon,
 } from "@phosphor-icons/react";
 import { useApi } from "../../hooks/useApi";
 import { Spinner } from "../../components/Common/Spinner";
@@ -38,6 +40,7 @@ export const ScheduleManagement = () => {
   const [workSchedules, setWorkSchedules] = useState<WorkSchedule[]>([]);
   const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
 
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<WorkSchedule | null>(
@@ -69,6 +72,16 @@ export const ScheduleManagement = () => {
     slot_duration: 30,
   });
   const [isBulkSubmitting, setIsBulkSubmitting] = useState(false);
+
+  // ✅ Detectar tamanho da tela
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useGuestRedirect({
     redirectTo: "/",
@@ -315,51 +328,83 @@ export const ScheduleManagement = () => {
   }
 
   return (
-    <>
-      {/* ✅ Header com navegação */}
-      <div className="flex items-center gap-2 mb-4">
-        <Link
-          to="/dashboard"
-          className="p-2 text-text-muted hover:text-accent transition rounded-xl hover:bg-accent/5"
-        >
-          <ArrowLeftIcon size={18} />
-        </Link>
-        <div>
-          <p className="text-text-muted text-xs">
-            Configure os horários da barbearia
-          </p>
+    <div className="pb-20 max-w-6xl mx-auto">
+      {/* ✅ Header com Navegação */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+        <div className="flex items-center gap-2">
+          <Link
+            to="/dashboard"
+            className="p-2 text-text-muted hover:text-accent transition rounded-xl hover:bg-accent/5"
+          >
+            <ArrowLeftIcon size={18} />
+          </Link>
+          <div>
+            <h1 className="font-serif text-xl md:text-2xl font-bold text-text">
+              Agenda
+            </h1>
+            <p className="text-text-muted text-xs md:text-sm">
+              Configure os horários da barbearia
+            </p>
+          </div>
         </div>
+        {isDesktop && (
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 text-text-muted text-xs bg-primary-light/50 px-3 py-1.5 rounded-lg border border-border/50">
+              <ListIcon size={14} className="text-accent" />
+              <span className="font-medium">{workSchedules.length} dias</span>
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={<PlusIcon size={16} />}
+              onClick={handleOpenBlockModal}
+            >
+              Bloquear Data
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              icon={<CopySimpleIcon size={16} />}
+              onClick={handleOpenBulkModal}
+            >
+              Edição em Massa
+            </Button>
+          </div>
+        )}
       </div>
 
-      {/* ✅ Ações Rápidas - Compactas */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        <Button
-          variant="primary"
-          size="sm"
-          icon={<CopySimpleIcon size={16} />}
-          onClick={handleOpenBulkModal}
-        >
-          Edição em Massa
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          icon={<PlusIcon size={16} />}
-          onClick={handleOpenBlockModal}
-        >
-          Bloquear Data
-        </Button>
-      </div>
+      {/* ✅ Ações Rápidas - Mobile */}
+      {!isDesktop && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          <Button
+            variant="primary"
+            size="sm"
+            icon={<CopySimpleIcon size={16} />}
+            onClick={handleOpenBulkModal}
+          >
+            Edição em Massa
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<PlusIcon size={16} />}
+            onClick={handleOpenBlockModal}
+          >
+            Bloquear Data
+          </Button>
+        </div>
+      )}
 
-      {/* ✅ Grid Principal */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* ✅ Grid Principal - Adaptativo */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         {/* ✅ Horários de Trabalho */}
         <div>
-          <h2 className="font-serif text-sm font-bold text-text mb-3">
-            🕐 Horários
+          <h2 className="font-serif text-base md:text-lg font-bold text-text mb-3 flex items-center gap-2">
+            <ClockIcon size={isDesktop ? 20 : 16} className="text-accent" />
+            Horários
           </h2>
 
-          <div className="space-y-1.5">
+          <div className="space-y-2 md:space-y-2.5">
             {DAYS_OF_WEEK.map((day) => {
               const schedule = schedulesMap.get(day.value);
               const isWorking = schedule?.is_working ?? false;
@@ -371,7 +416,7 @@ export const ScheduleManagement = () => {
                 <div
                   key={day.value}
                   onClick={() => handleOpenScheduleModal(day.value)}
-                  className={`bg-primary-light rounded-xl p-3 border cursor-pointer transition-all hover:border-accent/30 ${
+                  className={`bg-primary-light rounded-xl p-3 md:p-4 border cursor-pointer transition-all hover:border-accent/30 ${
                     isWorking
                       ? "border-border/50 hover:bg-accent/5"
                       : "border-red-500/20 hover:border-red-500/30"
@@ -379,15 +424,18 @@ export const ScheduleManagement = () => {
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-semibold text-text text-sm">
+                      <p className="font-semibold text-text text-sm md:text-base">
                         {day.label}
                       </p>
                       <p
-                        className={`text-xs ${isWorking ? "text-text-muted" : "text-red-500"}`}
+                        className={`text-xs md:text-sm ${isWorking ? "text-text-muted" : "text-red-500"}`}
                       >
                         {isWorking ? (
                           <>
-                            <ClockIcon size={12} className="inline mr-1" />
+                            <ClockIcon
+                              size={isDesktop ? 14 : 12}
+                              className="inline mr-1"
+                            />
                             {timeStr} • {schedule?.slot_duration || 30}min
                           </>
                         ) : (
@@ -400,10 +448,10 @@ export const ScheduleManagement = () => {
                         e.stopPropagation();
                         handleOpenScheduleModal(day.value);
                       }}
-                      className="p-1.5 bg-accent/10 text-accent rounded-lg hover:bg-accent/20 transition"
+                      className="p-2 md:p-2.5 bg-accent/10 text-accent rounded-lg hover:bg-accent/20 transition"
                       title="Editar"
                     >
-                      <PencilIcon size={14} />
+                      <PencilIcon size={isDesktop ? 16 : 14} />
                     </button>
                   </div>
                 </div>
@@ -411,7 +459,7 @@ export const ScheduleManagement = () => {
             })}
           </div>
 
-          <p className="text-text-muted text-[10px] mt-2 text-center">
+          <p className="text-text-muted text-[10px] md:text-xs mt-3 text-center">
             💡 Clique em qualquer dia para configurar
           </p>
         </div>
@@ -419,40 +467,46 @@ export const ScheduleManagement = () => {
         {/* ✅ Datas Bloqueadas */}
         <div>
           <div className="flex justify-between items-center mb-3">
-            <h2 className="font-serif text-sm font-bold text-text">
-              🚫 Bloqueios
+            <h2 className="font-serif text-base md:text-lg font-bold text-text flex items-center gap-2">
+              <CalendarIcon
+                size={isDesktop ? 20 : 16}
+                className="text-accent"
+              />
+              Bloqueios
             </h2>
-            <span className="text-text-muted text-xs">
-              {blockedDates.length}
+            <span className="text-text-muted text-xs md:text-sm bg-primary-light/50 px-3 py-1 rounded-lg border border-border/50">
+              {blockedDates.length} bloqueio(s)
             </span>
           </div>
 
           {blockedDates.length === 0 ? (
-            <div className="bg-primary-light rounded-xl text-center py-8 border border-border/50">
-              <div className="text-3xl mb-2">📅</div>
-              <p className="text-text-muted text-xs">Nenhuma data bloqueada</p>
-              <p className="text-text-muted text-[10px]">
+            <div className="bg-primary-light rounded-xl text-center py-8 md:py-12 border border-border/50">
+              <div className="text-4xl md:text-5xl mb-3">📅</div>
+              <p className="text-text-muted text-sm font-medium">
+                Nenhuma data bloqueada
+              </p>
+              <p className="text-text-muted text-xs mt-1">
                 Bloqueie feriados ou folgas
               </p>
             </div>
           ) : (
-            <div className="space-y-1.5 max-h-[300px] overflow-y-auto pr-1">
+            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
               {blockedDates.map((block) => (
                 <div
                   key={block.id}
-                  className="bg-primary-light rounded-xl p-3 border border-red-500/20 hover:border-red-500/30 transition-all"
+                  className="bg-primary-light rounded-xl p-3 md:p-4 border border-red-500/20 hover:border-red-500/30 transition-all"
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-semibold text-text text-sm">
+                      <p className="font-semibold text-text text-sm md:text-base">
                         {new Date(block.blocked_date).toLocaleDateString(
                           "pt-BR",
                         )}
                       </p>
-                      <p className="text-text-muted text-xs">
+                      <p className="text-text-muted text-xs md:text-sm">
                         {block.reason || "Sem motivo"}
                         {!block.is_full_day && (
-                          <span className="ml-2 text-[10px]">
+                          <span className="ml-2 text-[10px] md:text-xs">
                             {block.start_time} - {block.end_time}
                           </span>
                         )}
@@ -461,10 +515,10 @@ export const ScheduleManagement = () => {
                     <ConfirmPopup
                       trigger={
                         <button
-                          className="p-1.5 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition"
+                          className="p-2 md:p-2.5 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition"
                           title="Desbloquear"
                         >
-                          <TrashIcon size={14} />
+                          <TrashIcon size={isDesktop ? 18 : 14} />
                         </button>
                       }
                       onConfirm={() => handleUnblock(block.id)}
@@ -483,26 +537,29 @@ export const ScheduleManagement = () => {
         </div>
       </div>
 
-      {/* ✅ Modal de Horário Individual - Compacto */}
+      {/* ✅ Modal de Horário Individual - Otimizado */}
       {showScheduleModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-end sm:items-center justify-center z-50 p-4">
-          <div className="bg-primary-light rounded-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto animate-slideUp">
-            <div className="sticky top-0 bg-primary-light border-b border-border/50 p-3 flex justify-between items-center z-10">
-              <h3 className="font-serif text-base font-bold text-text">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-primary-light rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-slideUp">
+            <div className="sticky top-0 bg-primary-light border-b border-border/50 p-4 flex justify-between items-center z-10 rounded-t-2xl">
+              <h3 className="font-serif text-lg font-bold text-text">
                 {editingSchedule ? "Editar Horário" : "Configurar Horário"}
               </h3>
               <button
                 onClick={() => setShowScheduleModal(false)}
-                className="p-1.5 text-text-muted hover:text-text transition rounded-lg hover:bg-primary"
+                className="p-2 text-text-muted hover:text-text transition rounded-lg hover:bg-primary"
                 disabled={isSubmitting}
               >
-                <XIcon size={18} />
+                <XIcon size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveSchedule} className="p-4 space-y-3">
+            <form
+              onSubmit={handleSaveSchedule}
+              className="p-4 md:p-6 space-y-4"
+            >
               <div>
-                <label className="block text-xs font-medium text-text-secondary mb-1">
+                <label className="block text-xs md:text-sm font-medium text-text-secondary mb-1">
                   Dia da Semana
                 </label>
                 <select
@@ -530,7 +587,7 @@ export const ScheduleManagement = () => {
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="text-xs font-medium text-text-secondary">
+                <label className="text-xs md:text-sm font-medium text-text-secondary">
                   Funciona?
                 </label>
                 <button
@@ -541,7 +598,7 @@ export const ScheduleManagement = () => {
                       is_working: !scheduleForm.is_working,
                     })
                   }
-                  className={`px-3 py-1.5 rounded-lg transition text-xs font-medium ${
+                  className={`px-3 py-1.5 rounded-lg transition text-xs md:text-sm font-medium ${
                     scheduleForm.is_working
                       ? "bg-green-500/20 text-green-500 border-green-500/30 border"
                       : "bg-red-500/20 text-red-500 border-red-500/30 border"
@@ -553,9 +610,9 @@ export const ScheduleManagement = () => {
 
               {scheduleForm.is_working && (
                 <>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-text-secondary mb-1">
+                      <label className="block text-xs md:text-sm font-medium text-text-secondary mb-1">
                         Abre às
                       </label>
                       <input
@@ -573,7 +630,7 @@ export const ScheduleManagement = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-text-secondary mb-1">
+                      <label className="block text-xs md:text-sm font-medium text-text-secondary mb-1">
                         Fecha às
                       </label>
                       <input
@@ -593,7 +650,7 @@ export const ScheduleManagement = () => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-text-secondary mb-1">
+                    <label className="block text-xs md:text-sm font-medium text-text-secondary mb-1">
                       Duração do Slot (min)
                     </label>
                     <input
@@ -610,14 +667,14 @@ export const ScheduleManagement = () => {
                       required
                       disabled={isSubmitting}
                     />
-                    <p className="text-text-muted text-[10px] mt-0.5">
+                    <p className="text-text-muted text-[10px] md:text-xs mt-0.5">
                       Tempo de cada agendamento
                     </p>
                   </div>
                 </>
               )}
 
-              <div className="flex flex-col-reverse sm:flex-row gap-2 pt-1">
+              <div className="flex flex-col-reverse sm:flex-row gap-2 pt-2">
                 <Button
                   type="button"
                   variant="ghost"
@@ -644,33 +701,33 @@ export const ScheduleManagement = () => {
         </div>
       )}
 
-      {/* ✅ Modal de Edição em Massa - Compacto */}
+      {/* ✅ Modal de Edição em Massa - Otimizado */}
       {showBulkModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-end sm:items-center justify-center z-50 p-4">
-          <div className="bg-primary-light rounded-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto animate-slideUp">
-            <div className="sticky top-0 bg-primary-light border-b border-border/50 p-3 flex justify-between items-center z-10">
-              <h3 className="font-serif text-base font-bold text-text">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-primary-light rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-slideUp">
+            <div className="sticky top-0 bg-primary-light border-b border-border/50 p-4 flex justify-between items-center z-10 rounded-t-2xl">
+              <h3 className="font-serif text-lg font-bold text-text">
                 Edição em Massa
               </h3>
               <button
                 onClick={() => setShowBulkModal(false)}
-                className="p-1.5 text-text-muted hover:text-text transition rounded-lg hover:bg-primary"
+                className="p-2 text-text-muted hover:text-text transition rounded-lg hover:bg-primary"
                 disabled={isBulkSubmitting}
               >
-                <XIcon size={18} />
+                <XIcon size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveBulk} className="p-4 space-y-3">
+            <form onSubmit={handleSaveBulk} className="p-4 md:p-6 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-text-secondary mb-1.5">
+                <label className="block text-xs md:text-sm font-medium text-text-secondary mb-1.5">
                   Dias da Semana
                 </label>
                 <div className="flex flex-wrap gap-1.5 mb-1.5">
                   <button
                     type="button"
                     onClick={toggleAllDays}
-                    className="text-[10px] px-2 py-1 bg-accent/10 text-accent rounded-lg hover:bg-accent/20 transition"
+                    className="text-[10px] md:text-xs px-2 py-1 bg-accent/10 text-accent rounded-lg hover:bg-accent/20 transition"
                   >
                     {bulkForm.selectedDays.length === DAYS_OF_WEEK.length
                       ? "Deselecionar Todos"
@@ -687,7 +744,7 @@ export const ScheduleManagement = () => {
                         key={day.value}
                         type="button"
                         onClick={() => toggleDaySelection(day.value)}
-                        className={`p-2 rounded-lg border-2 text-xs transition ${
+                        className={`p-2 rounded-lg border-2 text-xs md:text-sm transition ${
                           isSelected
                             ? "border-accent bg-accent/10 text-accent"
                             : "border-border/50 text-text-secondary hover:border-border-light"
@@ -698,13 +755,13 @@ export const ScheduleManagement = () => {
                     );
                   })}
                 </div>
-                <p className="text-text-muted text-[10px] mt-1.5">
+                <p className="text-text-muted text-[10px] md:text-xs mt-1.5">
                   {bulkForm.selectedDays.length} dia(s) selecionado(s)
                 </p>
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="text-xs font-medium text-text-secondary">
+                <label className="text-xs md:text-sm font-medium text-text-secondary">
                   Funciona?
                 </label>
                 <button
@@ -715,7 +772,7 @@ export const ScheduleManagement = () => {
                       is_working: !bulkForm.is_working,
                     })
                   }
-                  className={`px-3 py-1.5 rounded-lg transition text-xs font-medium ${
+                  className={`px-3 py-1.5 rounded-lg transition text-xs md:text-sm font-medium ${
                     bulkForm.is_working
                       ? "bg-green-500/20 text-green-500 border-green-500/30 border"
                       : "bg-red-500/20 text-red-500 border-red-500/30 border"
@@ -727,9 +784,9 @@ export const ScheduleManagement = () => {
 
               {bulkForm.is_working && (
                 <>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-text-secondary mb-1">
+                      <label className="block text-xs md:text-sm font-medium text-text-secondary mb-1">
                         Abre às
                       </label>
                       <input
@@ -747,7 +804,7 @@ export const ScheduleManagement = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-text-secondary mb-1">
+                      <label className="block text-xs md:text-sm font-medium text-text-secondary mb-1">
                         Fecha às
                       </label>
                       <input
@@ -767,7 +824,7 @@ export const ScheduleManagement = () => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-text-secondary mb-1">
+                    <label className="block text-xs md:text-sm font-medium text-text-secondary mb-1">
                       Duração do Slot (min)
                     </label>
                     <input
@@ -784,14 +841,14 @@ export const ScheduleManagement = () => {
                       required
                       disabled={isBulkSubmitting}
                     />
-                    <p className="text-text-muted text-[10px] mt-0.5">
+                    <p className="text-text-muted text-[10px] md:text-xs mt-0.5">
                       Tempo de cada agendamento
                     </p>
                   </div>
                 </>
               )}
 
-              <div className="flex flex-col-reverse sm:flex-row gap-2 pt-1">
+              <div className="flex flex-col-reverse sm:flex-row gap-2 pt-2">
                 <Button
                   type="button"
                   variant="ghost"
@@ -819,26 +876,26 @@ export const ScheduleManagement = () => {
         </div>
       )}
 
-      {/* ✅ Modal de Data Bloqueada - Compacto */}
+      {/* ✅ Modal de Data Bloqueada - Otimizado */}
       {showBlockModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-end sm:items-center justify-center z-50 p-4">
-          <div className="bg-primary-light rounded-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto animate-slideUp">
-            <div className="sticky top-0 bg-primary-light border-b border-border/50 p-3 flex justify-between items-center z-10">
-              <h3 className="font-serif text-base font-bold text-text">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-primary-light rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-slideUp">
+            <div className="sticky top-0 bg-primary-light border-b border-border/50 p-4 flex justify-between items-center z-10 rounded-t-2xl">
+              <h3 className="font-serif text-lg font-bold text-text">
                 Bloquear Data
               </h3>
               <button
                 onClick={() => setShowBlockModal(false)}
-                className="p-1.5 text-text-muted hover:text-text transition rounded-lg hover:bg-primary"
+                className="p-2 text-text-muted hover:text-text transition rounded-lg hover:bg-primary"
                 disabled={isBlockSubmitting}
               >
-                <XIcon size={18} />
+                <XIcon size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveBlock} className="p-4 space-y-3">
+            <form onSubmit={handleSaveBlock} className="p-4 md:p-6 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-text-secondary mb-1">
+                <label className="block text-xs md:text-sm font-medium text-text-secondary mb-1">
                   Data
                 </label>
                 <input
@@ -855,7 +912,7 @@ export const ScheduleManagement = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-text-secondary mb-1">
+                <label className="block text-xs md:text-sm font-medium text-text-secondary mb-1">
                   Motivo
                 </label>
                 <input
@@ -871,7 +928,7 @@ export const ScheduleManagement = () => {
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="text-xs font-medium text-text-secondary">
+                <label className="text-xs md:text-sm font-medium text-text-secondary">
                   Dia inteiro?
                 </label>
                 <button
@@ -882,7 +939,7 @@ export const ScheduleManagement = () => {
                       is_full_day: !blockForm.is_full_day,
                     })
                   }
-                  className={`px-3 py-1.5 rounded-lg transition text-xs font-medium ${
+                  className={`px-3 py-1.5 rounded-lg transition text-xs md:text-sm font-medium ${
                     blockForm.is_full_day
                       ? "bg-accent/20 text-accent border-accent/30 border"
                       : "bg-primary border border-border/50 text-text-secondary"
@@ -892,7 +949,7 @@ export const ScheduleManagement = () => {
                 </button>
               </div>
 
-              <div className="flex flex-col-reverse sm:flex-row gap-2 pt-1">
+              <div className="flex flex-col-reverse sm:flex-row gap-2 pt-2">
                 <Button
                   type="button"
                   variant="ghost"
@@ -918,7 +975,7 @@ export const ScheduleManagement = () => {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 };
 
