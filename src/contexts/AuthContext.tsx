@@ -51,23 +51,42 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       localStorage.setItem("@BarberApp:token", token);
       setUser(userData);
-      toast.success("✅ Login realizado com sucesso!");
+      toast.success("Login realizado com sucesso!");
     } catch (error: any) {
       const message = error.response?.data?.message || "Erro ao fazer login";
-      toast.error(`❌ ${message}`);
+      toast.error(`${message}`);
       throw error;
     }
   };
 
   const logout = () => {
+    // ✅ Remover token
     localStorage.removeItem("@BarberApp:token");
+
+    // ✅ Remover dados do usuário
+    localStorage.removeItem("@BarberApp:user");
+
+    // ✅ Limpar outras configurações temporárias
+    localStorage.removeItem("@BarberApp:barber_info");
+    localStorage.removeItem("whatsapp_config");
+
+    // ✅ Resetar estado do usuário
     setUser(null);
-    toast.info("👋 Logout realizado");
+
+    // ✅ Não exibir toast aqui, pois será exibido pelo hook useLogout
   };
 
   const updateUser = (data: Partial<User>) => {
     if (user) {
-      setUser({ ...user, ...data });
+      const updatedUser = { ...user, ...data };
+      setUser(updatedUser);
+
+      // ✅ Salvar no localStorage para persistência
+      try {
+        localStorage.setItem("@BarberApp:user", JSON.stringify(updatedUser));
+      } catch (error) {
+        console.error("Erro ao salvar usuário no localStorage:", error);
+      }
     }
   };
 

@@ -42,7 +42,7 @@ export const ProtectedRoute = ({
 
   // ✅ Se a rota exige estar LOGADO e o usuário está DESLOGADO
   if (!requireGuest && !isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return <Outlet />;

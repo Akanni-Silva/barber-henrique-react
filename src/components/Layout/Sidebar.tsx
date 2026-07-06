@@ -23,6 +23,7 @@ import {
   getBarberInitial,
   getBarberName,
 } from "../../utils/logo";
+import { useLogout } from "../../hooks/useLogout"; // ✅ Importar o hook
 
 interface NavItem {
   icon: React.ReactNode;
@@ -33,9 +34,15 @@ interface NavItem {
 
 export const Sidebar = () => {
   const location = useLocation();
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { barberInfo } = useBarberInfo();
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // ✅ Usar o hook useLogout
+  const { logout } = useLogout({
+    redirectTo: "/",
+    showToast: true,
+  });
 
   // ✅ Itens para cliente (não logado)
   const clientItems: NavItem[] = [
@@ -113,10 +120,7 @@ export const Sidebar = () => {
     return location.pathname === to;
   };
 
-  const handleLogout = () => {
-    logout();
-    toast.info("👋 Até logo!");
-  };
+  // ✅ Remover handleLogout pois agora usamos o hook
 
   const logoUrl = getBarberLogo(barberInfo);
   const initial = getBarberInitial(barberInfo);
@@ -266,7 +270,7 @@ export const Sidebar = () => {
                 );
               })}
 
-              {/* Botão Sair */}
+              {/* Botão Sair - Usando o hook useLogout */}
               <ConfirmPopup
                 trigger={
                   <button
@@ -283,7 +287,7 @@ export const Sidebar = () => {
                     )}
                   </button>
                 }
-                onConfirm={handleLogout}
+                onConfirm={logout} // ✅ Usar a função do hook
                 title="Sair da conta"
                 message="Tem certeza que deseja sair da sua conta?"
                 confirmText="Sair"

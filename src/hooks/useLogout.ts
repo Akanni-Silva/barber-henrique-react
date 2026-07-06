@@ -1,5 +1,5 @@
 // src/hooks/useLogout.ts
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./useAuth";
 import { toast } from "react-toastify";
@@ -17,6 +17,18 @@ interface UseLogoutOptions {
    * Se true, exibe um toast de sucesso
    */
   showToast?: boolean;
+  /**
+   * Callback executado antes do logout
+   */
+  onBeforeLogout?: () => void;
+  /**
+   * Callback executado após o logout
+   */
+  onAfterLogout?: () => void;
+  /**
+   * Se true, limpa todos os dados do localStorage (exceto token)
+   */
+  clearStorage?: boolean;
 }
 
 /**
@@ -42,28 +54,72 @@ interface UseLogoutOptions {
 export const useLogout = (options: UseLogoutOptions = {}) => {
   const {
     redirectTo = "/",
-    successMessage = "👋 Logout realizado com sucesso!",
+    successMessage = "Logout realizado com sucesso!",
     showToast = true,
+    onBeforeLogout,
+    onAfterLogout,
+    clearStorage = false,
   } = options;
 
   const navigate = useNavigate();
   const { logout: authLogout, isAuthenticated } = useAuth();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const logout = useCallback(async () => {
-    // Executar o logout do contexto de autenticação
-    authLogout();
+    try {
+      setIsLoggingOut(true);
 
-    // Exibir toast de sucesso
-    if (showToast) {
-      toast.success(successMessage);
+      // ✅ Executar callback antes do logout
+      if (onBeforeLogout) {
+        onBeforeLogout();
+      }
+
+      // ✅ Limpar dados específicos do localStorage se solicitado
+      if (clearStorage) {
+        const keysToKeep = ["@BarberApp:token", "@BarberApp:user"];
+        const allKeys = Object.keys(localStorage);
+        allKeys.forEach((key) => {
+          if (!keysToKeep.includes(key)) {
+            localStorage.removeItem(key);
+          }
+        });
+      }
+
+      // ✅ Executar o logout do contexto de autenticação
+      authLogout();
+
+      // ✅ Exibir toast de sucesso
+      if (showToast) {
+        toast.success(successMessage);
+      }
+
+      // ✅ Executar callback após o logout
+      if (onAfterLogout) {
+        onAfterLogout();
+      }
+
+      // ✅ Redirecionar para a home ou rota especificada
+      navigate(redirectTo, { replace: true });
+    } catch (error) {
+      console.error("Erro durante logout:", error);
+      toast.error("Erro ao fazer logout");
+    } finally {
+      setIsLoggingOut(false);
     }
-
-    // Redirecionar para a home ou rota especificada
-    navigate(redirectTo, { replace: true });
-  }, [authLogout, navigate, redirectTo, showToast, successMessage]);
+  }, [
+    authLogout,
+    navigate,
+    redirectTo,
+    showToast,
+    successMessage,
+    onBeforeLogout,
+    onAfterLogout,
+    clearStorage,
+  ]);
 
   return {
     logout,
+    isLoggingOut,
     isAuthenticated,
   };
 };

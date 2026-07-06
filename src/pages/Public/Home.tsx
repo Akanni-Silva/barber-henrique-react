@@ -374,7 +374,7 @@ export const Home = () => {
 
           {/* Contato e Redes Sociais */}
           <div
-            className={`${isDesktop ? "flex-1" : "w-full"} flex flex-col gap-3`}
+            className={`${isDesktop ? "flex-1 items-end" : "w-full"} flex flex-col gap-3`}
           >
             <div className="flex flex-wrap items-center gap-3">
               {/* WhatsApp */}

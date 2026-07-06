@@ -58,6 +58,8 @@ export const Dashboard = () => {
   const [loadingStats, setLoadingStats] = useState(true);
   const [services, setServices] = useState<Product[]>([]);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
+  const [selectedAppointment, setSelectedAppointment] =
+    useState<Appointment | null>(null);
 
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [appointmentToReschedule, setAppointmentToReschedule] =
@@ -430,7 +432,7 @@ export const Dashboard = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-6">
         <div>
           <h1 className="font-serif text-xl md:text-2xl font-bold text-text">
-            Olá, {user?.name?.split(" ")[0] || "Barbeiro"} 👋
+            Olá, {user?.name?.split(" ")[0] || "Barbeiro"}
           </h1>
           <p className="text-text-muted text-xs md:text-sm">
             {new Date().toLocaleDateString("pt-BR", {
@@ -529,7 +531,7 @@ export const Dashboard = () => {
         <section className="lg:col-span-2">
           <div className="flex justify-between items-center mb-3">
             <h2 className="font-serif text-base md:text-lg font-bold text-text">
-              📅 Hoje
+              Hoje
             </h2>
             <span className="text-text-muted text-xs">
               {activeTodayAppointments.length} agendamento(s)
@@ -688,7 +690,7 @@ export const Dashboard = () => {
           {/* ✅ Próximos Agendamentos */}
           <section>
             <h2 className="font-serif text-base md:text-lg font-bold text-text mb-3">
-              📌 Próximos
+              Próximos
             </h2>
             {activeUpcomingAppointments.length === 0 ? (
               <div className="bg-primary-light rounded-xl text-center py-8 border border-border/50">
@@ -726,8 +728,16 @@ export const Dashboard = () => {
                             {app.appointment_time}
                           </p>
                           {isDesktop && app.service?.name && (
-                            <p className="text-text-muted text-[10px] md:text-xs">
-                              ✂️ {app.service.name}
+                            <p className="text-text-muted text-[10px] md:text-xs flex items-center gap-1">
+                              {app.service?.category ? (
+                                <ServiceIcon
+                                  category={app.service.category}
+                                  size={12}
+                                />
+                              ) : (
+                                "✂️"
+                              )}
+                              {app.service.name}
                             </p>
                           )}
                         </div>
@@ -785,7 +795,7 @@ export const Dashboard = () => {
           {/* ✅ Ações Rápidas - Desktop com mais opções */}
           <section>
             <h2 className="font-serif text-base md:text-lg font-bold text-text mb-3">
-              ⚡ Ações Rápidas
+              Ações Rápidas
             </h2>
             <nav className="space-y-1.5 md:space-y-2">
               {[
@@ -832,7 +842,7 @@ export const Dashboard = () => {
           {isDesktop && stats && (
             <section className="bg-gradient-to-br from-accent/5 to-transparent rounded-xl p-4 border border-accent/10">
               <h3 className="font-serif text-sm font-bold text-text mb-2">
-                📊 Resumo
+                Resumo
               </h3>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>

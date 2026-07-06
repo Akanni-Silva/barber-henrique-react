@@ -24,6 +24,7 @@ import {
   getBarberName,
 } from "../../utils/logo";
 import { useApi } from "../../hooks/useApi";
+import { useLogout } from "../../hooks/useLogout";
 
 interface Notification {
   id: number;
@@ -37,7 +38,7 @@ interface Notification {
 export const DesktopHeader = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { barberInfo } = useBarberInfo();
   const { endpoints, handleRequest } = useApi();
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
@@ -166,11 +167,11 @@ export const DesktopHeader = () => {
   if (location.pathname === "/login" || location.pathname === "/register")
     return null;
 
-  const handleLogout = () => {
-    logout();
-    toast.info("👋 Até logo!");
-    setIsProfileMenuOpen(false);
-  };
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const { logout } = useLogout({
+    redirectTo: "/",
+    showToast: true,
+  });
 
   const logoUrl = getBarberLogo(barberInfo);
   const initial = getBarberInitial(barberInfo);
@@ -397,7 +398,7 @@ export const DesktopHeader = () => {
                       <span className="text-sm">Sair da conta</span>
                     </button>
                   }
-                  onConfirm={handleLogout}
+                  onConfirm={logout}
                   title="Sair da conta"
                   message="Tem certeza que deseja sair da sua conta?"
                   confirmText="Sair"
