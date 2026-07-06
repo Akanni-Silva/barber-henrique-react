@@ -441,6 +441,79 @@ export interface RescheduleModalProps {
   isLoading?: boolean;
 }
 
+// src/types/index.ts
+// Adicionar ao final do arquivo
+
+// ========================================
+// 📦 MODELOS DE NOTIFICAÇÕES WHATSAPP
+// ========================================
+
+export interface WhatsAppMessage {
+  to: string;
+  message: string;
+  type?: "text" | "template";
+  templateName?: string;
+  templateParams?: Record<string, string>;
+}
+
+export interface WhatsAppConfig {
+  phoneNumberId: string;
+  accessToken: string;
+  fromPhoneNumber: string;
+}
+
+export interface NotificationData {
+  appointment: Appointment;
+  service?: Product;
+  barber: User;
+  client?: User;
+}
+
+export interface WhatsAppNotificationReturn {
+  // Notificações para barbeiro
+  notifyBarberNewAppointment: (
+    appointment: Appointment,
+    service?: Product,
+  ) => Promise<boolean>;
+  notifyBarberConfirmation: (
+    appointment: Appointment,
+    service?: Product,
+  ) => Promise<boolean>;
+  notifyBarberCancellation: (appointment: Appointment) => Promise<boolean>;
+  notifyBarberReschedule: (
+    appointment: Appointment,
+    service?: Product,
+  ) => Promise<boolean>;
+  notifyBarberDailyReminder: (appointments: Appointment[]) => Promise<boolean>;
+
+  // Notificações para cliente
+  notifyClientNewAppointment: (
+    appointment: Appointment,
+    service?: Product,
+  ) => Promise<boolean>;
+  notifyClientConfirmation: (
+    appointment: Appointment,
+    service?: Product,
+  ) => Promise<boolean>;
+  notifyClientCancellation: (appointment: Appointment) => Promise<boolean>;
+  notifyClientReschedule: (
+    appointment: Appointment,
+    service?: Product,
+  ) => Promise<boolean>;
+  notifyClientReminder: (appointment: Appointment) => Promise<boolean>;
+
+  // Utilitários
+  sendCustomMessage: (to: string, message: string) => Promise<boolean>;
+  isConfigured: boolean;
+  isLoading: boolean;
+  hasBarberPhone: boolean;
+}
+
+export interface WhatsAppConfigProps {
+  onConfigured?: () => void;
+  onDisabled?: () => void;
+}
+
 // ========================================
 // 📦 MODELOS DE HISTÓRICO DO CLIENTE
 // ========================================

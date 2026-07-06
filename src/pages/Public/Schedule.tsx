@@ -410,7 +410,7 @@ export const Schedule = () => {
       );
 
       setSuccess(true);
-      toast.success("✅ Agendamento realizado com sucesso!");
+      toast.success("Agendamento realizado com sucesso!");
 
       setAvailableSlots((prev) => prev.filter((slot) => slot !== selectedTime));
       setSelectedTime("");
@@ -572,7 +572,7 @@ export const Schedule = () => {
             />
           </div>
           <h2 className="font-serif text-xl md:text-2xl font-bold text-text mb-2">
-            Agendamento Confirmado! ✅
+            Agendamento Confirmado!
           </h2>
           <p className="text-text-muted text-sm md:text-base max-w-sm mx-auto mb-6">
             Você receberá a confirmação no WhatsApp em instantes.
