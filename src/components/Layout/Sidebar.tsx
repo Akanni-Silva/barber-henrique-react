@@ -23,7 +23,7 @@ import {
   getBarberInitial,
   getBarberName,
 } from "../../utils/logo";
-import { useLogout } from "../../hooks/useLogout"; // ✅ Importar o hook
+import { useLogout } from "../../hooks/useLogout";
 
 interface NavItem {
   icon: React.ReactNode;
@@ -38,13 +38,11 @@ export const Sidebar = () => {
   const { barberInfo } = useBarberInfo();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // ✅ Usar o hook useLogout
   const { logout } = useLogout({
     redirectTo: "/",
     showToast: true,
   });
 
-  // ✅ Itens para cliente (não logado)
   const clientItems: NavItem[] = [
     {
       icon: <HouseIcon size={22} />,
@@ -63,7 +61,6 @@ export const Sidebar = () => {
     },
   ];
 
-  // ✅ Itens para barbeiro (logado)
   const barberItems: NavItem[] = [
     {
       icon: <ChartBarIcon size={22} />,
@@ -92,7 +89,6 @@ export const Sidebar = () => {
     },
   ];
 
-  // ✅ Itens do rodapé (apenas para usuários logados)
   const bottomItems = isAuthenticated
     ? [
         {
@@ -103,7 +99,6 @@ export const Sidebar = () => {
       ]
     : [];
 
-  // ✅ Montar lista baseada no estado de autenticação
   const navItems = isAuthenticated ? barberItems : clientItems;
 
   const isActive = (to: string) => {
@@ -120,26 +115,23 @@ export const Sidebar = () => {
     return location.pathname === to;
   };
 
-  // ✅ Remover handleLogout pois agora usamos o hook
-
   const logoUrl = getBarberLogo(barberInfo);
   const initial = getBarberInitial(barberInfo);
   const barberName = getBarberName(barberInfo);
 
   return (
     <aside
-      className={`bg-primary-light border-r border-border/50 flex flex-col transition-all duration-300 ${
+      className={`bg-primary-light border-r border-border/50 flex flex-col transition-all duration-400 ${
         isCollapsed ? "w-20" : "w-64"
-      }`}
+      } h-screen sticky top-0`} // ✅ Adicionar sticky e h-screen
     >
-      {/* ✅ Logo com Avatar da Barbearia */}
+      {/* ✅ Logo com Avatar da Barbearia - Fixo no topo */}
       <div className="flex items-center justify-between h-16 px-4 border-b border-border/50 flex-shrink-0">
         {!isCollapsed ? (
           <Link
             to={isAuthenticated ? "/dashboard" : "/"}
             className="flex items-center gap-3"
           >
-            {/* Avatar da Barbearia */}
             <div className="w-10 h-10 rounded-xl overflow-hidden bg-accent/10 flex items-center justify-center border-2 border-accent/20 flex-shrink-0">
               {logoUrl ? (
                 <img
@@ -215,7 +207,7 @@ export const Sidebar = () => {
         </button>
       </div>
 
-      {/* Restante do sidebar... */}
+      {/* ✅ Navegação - Scrollável independente */}
       <nav className="flex-1 px-3 py-4 overflow-y-auto">
         <div className="space-y-1">
           {navItems.map((item) => {
@@ -244,7 +236,7 @@ export const Sidebar = () => {
         </div>
       </nav>
 
-      {/* Bottom Items */}
+      {/* ✅ Bottom Items - Fixo no rodapé */}
       <div className="border-t border-border/50 px-3 py-4 flex-shrink-0">
         {isAuthenticated && (
           <>
@@ -270,7 +262,6 @@ export const Sidebar = () => {
                 );
               })}
 
-              {/* Botão Sair - Usando o hook useLogout */}
               <ConfirmPopup
                 trigger={
                   <button
@@ -287,7 +278,7 @@ export const Sidebar = () => {
                     )}
                   </button>
                 }
-                onConfirm={logout} // ✅ Usar a função do hook
+                onConfirm={logout}
                 title="Sair da conta"
                 message="Tem certeza que deseja sair da sua conta?"
                 confirmText="Sair"
@@ -296,41 +287,9 @@ export const Sidebar = () => {
                 size="sm"
               />
             </div>
-
-            {/* Informações do Usuário */}
-            {!isCollapsed && user && (
-              <div className="mt-4 pt-4 border-t border-border/30">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0 border border-accent/20">
-                    {user.avatar_url ? (
-                      <img
-                        src={user.avatar_url}
-                        alt={user.name}
-                        className="w-full h-full object-cover rounded-full"
-                      />
-                    ) : (
-                      <UserIcon
-                        size={16}
-                        className="text-accent"
-                        weight="fill"
-                      />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-text text-sm font-medium truncate">
-                      {user.name}
-                    </p>
-                    <p className="text-text-muted text-xs truncate">
-                      {user.email}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
           </>
         )}
 
-        {/* Link para login (não logado) */}
         {!isAuthenticated && (
           <div className="space-y-1">
             <Link

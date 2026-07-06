@@ -24,6 +24,7 @@ import { Perfil } from "./pages/Private/Perfil";
 import { ClientHistory } from "./pages/Private/ClientHistory";
 
 import "react-toastify/dist/ReactToastify.css";
+import { ScrollToTop } from "./components/Common/ScrollToTop";
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
         <FilterProvider>
           <ServiceProvider>
             <BarberInfoProvider>
+              <ScrollToTop />
               <Routes>
                 {/* ✅ Rotas Públicas (sem layout) */}
                 <Route path="/login" element={<Login />} />
