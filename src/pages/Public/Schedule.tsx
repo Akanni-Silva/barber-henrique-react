@@ -16,18 +16,14 @@ import { Button } from "../../components/Common/Button";
 import { formatPrice } from "../../utils/formatPrice";
 import { isValidPhone } from "../../utils/validators";
 import type { Product } from "../../types";
-import { categoryLabels } from "../../types";
 import {
   CalendarIcon,
   CheckIcon,
   PhoneIcon,
   UserIcon,
   ClockIcon,
-  ArrowRightIcon,
   CaretCircleLeftIcon,
   CaretCircleRightIcon,
-  ScissorsIcon,
-  CheckCircleIcon,
 } from "@phosphor-icons/react";
 
 export const Schedule = () => {
@@ -47,7 +43,7 @@ export const Schedule = () => {
 
   // Estados do Calendário
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [, setSelectedDay] = useState<number | null>(null);
   const [calendarDays, setCalendarDays] = useState<Date[]>([]);
 
   const [clientName, setClientName] = useState("");
@@ -398,7 +394,7 @@ export const Schedule = () => {
     try {
       const cleanPhone = clientPhone.replace(/\D/g, "");
 
-      const response = await handleRequest(
+      await handleRequest(
         endpoints.appointments.create({
           client_name: clientName.trim(),
           client_phone: cleanPhone,

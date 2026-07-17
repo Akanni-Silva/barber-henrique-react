@@ -7,16 +7,13 @@ import {
   ClipboardIcon,
   UsersIcon,
   CalendarIcon,
-  ClockIcon,
   UserIcon,
   SignOutIcon,
   HouseIcon,
-  GearIcon,
 } from "@phosphor-icons/react";
 import { useAuth } from "../../hooks/useAuth";
 import { useBarberInfo } from "../../contexts/BarberInfoContext";
 import { ConfirmPopup } from "../Common/ConfirmPopup";
-import { toast } from "react-toastify";
 import { useState } from "react";
 import {
   getBarberLogo,
@@ -34,7 +31,7 @@ interface NavItem {
 
 export const Sidebar = () => {
   const location = useLocation();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
   const { barberInfo } = useBarberInfo();
   const [isCollapsed, setIsCollapsed] = useState(false);
 

@@ -42,11 +42,7 @@ import {
   getMonthLabel,
   hasClientHistory,
 } from "../../utils/clientHistory";
-import {
-  getTemporalStatus,
-  canConfirmAppointment,
-  canCancelAppointment,
-} from "../../utils/appointmentStatus";
+import { getTemporalStatus } from "../../utils/appointmentStatus";
 import type {
   Appointment,
   Client,

@@ -283,18 +283,6 @@ export const AppointmentsManagement = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    try {
-      await handleRequest(endpoints.appointments.delete(id));
-      toast.success("Agendamento removido!");
-      await fetchAppointments();
-    } catch (error: any) {
-      const message =
-        error.response?.data?.message || "Erro ao deletar agendamento";
-      toast.error(`${message}`);
-    }
-  };
-
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; className: string }> = {
       pending: {

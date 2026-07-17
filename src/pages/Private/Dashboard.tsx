@@ -15,10 +15,7 @@ import {
   MoneyIcon,
   ArrowRightIcon,
   ListIcon,
-  PlusCircleIcon,
   CalendarPlusIcon,
-  TrendUpIcon,
-  UsersIcon,
 } from "@phosphor-icons/react";
 import { useApi } from "../../hooks/useApi";
 import { useAuth } from "../../hooks/useAuth";
@@ -58,9 +55,6 @@ export const Dashboard = () => {
   const [loadingStats, setLoadingStats] = useState(true);
   const [services, setServices] = useState<Product[]>([]);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
-  const [selectedAppointment, setSelectedAppointment] =
-    useState<Appointment | null>(null);
-
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [appointmentToReschedule, setAppointmentToReschedule] =
     useState<Appointment | null>(null);

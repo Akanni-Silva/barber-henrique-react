@@ -10,7 +10,7 @@ import { DesktopHeader } from "./DesktopHeader";
 import { DesktopFooter } from "./DesktopFooter";
 
 export const AppLayout = () => {
-  const { isAuthenticated } = useAuth();
+  useAuth();
   const location = useLocation();
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
 

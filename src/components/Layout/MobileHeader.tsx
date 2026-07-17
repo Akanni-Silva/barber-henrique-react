@@ -7,7 +7,6 @@ import {
   BellIcon,
   UserIcon,
   ArrowLeftIcon,
-  SignInIcon,
   MagnifyingGlassIcon,
   PlusIcon,
   FunnelIcon,
@@ -24,11 +23,7 @@ import { ConfirmPopup } from "../Common/ConfirmPopup";
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { useBarberInfo } from "../../contexts/BarberInfoContext";
-import {
-  getBarberInitial,
-  getBarberLogo,
-  getBarberName,
-} from "../../utils/logo";
+import { getBarberLogo, getBarberName } from "../../utils/logo";
 import { useApi } from "../../hooks/useApi";
 
 interface MobileHeaderProps {
@@ -58,7 +53,6 @@ export const MobileHeader = ({
   const { barberInfo } = useBarberInfo();
   const { endpoints, handleRequest } = useApi();
   const logoUrl = getBarberLogo(barberInfo);
-  const initial = getBarberInitial(barberInfo);
   const barberName = getBarberName(barberInfo);
   const location = useLocation();
   const navigate = useNavigate();

@@ -16,16 +16,11 @@ import { Input } from "../Common/Input";
 import { Spinner } from "../Common/Spinner";
 import { ForgotPasswordModal } from "../Common/ForgotPasswordModal";
 
-
 interface LoginFormProps {
   onSuccess?: () => void;
-  redirectTo?: string;
 }
 
-export const LoginForm: React.FC<LoginFormProps> = ({
-  onSuccess,
-  redirectTo = "/dashboard",
-}) => {
+export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);

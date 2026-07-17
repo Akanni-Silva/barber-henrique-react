@@ -8,10 +8,9 @@ import {
   MagnifyingGlassIcon,
   XIcon,
   CalendarIcon,
-  ArrowRightIcon,
   FunnelIcon,
-  ScissorsIcon,
   ListIcon,
+  ArrowRightIcon,
 } from "@phosphor-icons/react";
 import { useApi } from "../../hooks/useApi";
 import { Spinner } from "../../components/Common/Spinner";

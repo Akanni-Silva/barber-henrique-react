@@ -39,7 +39,6 @@ export const ConfirmPopup: React.FC<ConfirmPopupProps> = ({
   icon,
   isLoading = false,
   disabled = false,
-  size = "md",
 }) => {
   // ✅ Variantes de cores com estilo mobile
   const variants = {

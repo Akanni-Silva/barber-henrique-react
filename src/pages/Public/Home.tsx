@@ -18,17 +18,13 @@ import {
   ClockIcon,
   MapPinIcon,
   ScissorsIcon,
-  StarIcon,
   WhatsappLogoIcon,
-  ShieldCheckIcon,
-  SparkleIcon,
-  MedalIcon,
-  UsersIcon,
-  EnvelopeIcon,
   PhoneIcon,
+  MedalIcon,
+  SparkleIcon,
+  ShieldCheckIcon,
   InstagramLogoIcon,
   FacebookLogoIcon,
-  CaretCircleRightIcon,
 } from "@phosphor-icons/react";
 
 export const Home = () => {

@@ -44,7 +44,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
 
     setLoading(true);
     try {
-      const response = await authEndpoint.forgotPassword({ email });
+      await authEndpoint.forgotPassword({ email });
 
       setSuccess(true);
       toast.success("✅ Email de recuperação enviado!");

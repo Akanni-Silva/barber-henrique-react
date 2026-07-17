@@ -41,14 +41,6 @@ export const ServiceIcon: React.FC<ServiceIconProps> = ({
     compact: "bg-accent/10 rounded-lg p-1.5", // ✅ Nova variante compacta
   };
 
-  // ✅ Tamanhos otimizados para mobile
-  const sizeMap = {
-    small: 16,
-    medium: 20,
-    large: 24,
-    xlarge: 32,
-  };
-
   // ✅ Tamanho do label baseado no ícone
   const labelSize = size >= 24 ? "text-xs" : "text-[10px]";
 

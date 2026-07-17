@@ -15,7 +15,7 @@ import { Button } from "./Button";
 import { toast } from "react-toastify";
 import { formatPrice } from "../../utils/formatPrice";
 import { useApi } from "../../hooks/useApi";
-import type { Appointment, Product, RescheduleModalProps } from "../../types";
+import type { RescheduleModalProps } from "../../types";
 
 export const RescheduleModal: React.FC<RescheduleModalProps> = ({
   isOpen,

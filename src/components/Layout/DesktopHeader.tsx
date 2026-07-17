@@ -4,7 +4,6 @@
 // src/components/Layout/DesktopHeader.tsx
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
-  ScissorsIcon,
   BellIcon,
   UserIcon,
   SignOutIcon,
@@ -16,7 +15,6 @@ import {
 import { useAuth } from "../../hooks/useAuth";
 import { useBarberInfo } from "../../contexts/BarberInfoContext";
 import { ConfirmPopup } from "../Common/ConfirmPopup";
-import { toast } from "react-toastify";
 import { useState, useEffect } from "react";
 import {
   getBarberLogo,

@@ -12,7 +12,6 @@ import {
   ArrowRightIcon,
 } from "@phosphor-icons/react";
 import { Input } from "../../components/Common/Input";
-import { Button } from "../../components/Common/Button";
 import { Spinner } from "../../components/Common/Spinner";
 import { authEndpoint } from "../../api/endpoints/auth";
 
