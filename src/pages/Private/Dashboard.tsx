@@ -91,7 +91,14 @@ export const Dashboard = () => {
   const fetchServices = useCallback(async () => {
     try {
       const data = await handleRequest(endpoints.products.findActive());
-      setServices(data || []);
+      // ✅ Garantir que services seja sempre um array
+      if (Array.isArray(data)) {
+        setServices(data);
+      } else if (data?.data && Array.isArray(data.data)) {
+        setServices(data.data);
+      } else {
+        setServices([]);
+      }
     } catch (error) {
       if (import.meta.env.DEV) {
         console.debug("Serviços não disponíveis:", error);
@@ -449,7 +456,7 @@ export const Dashboard = () => {
         </div>
       </div>
 
-      {/* ✅ Cards de Estatísticas - Grid adaptativo */}
+      {/* ✅ Cards de Estatísticas */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 mb-4">
         <div className="bg-primary-light rounded-xl p-3 md:p-4 border border-border/50">
           <div className="flex items-center justify-between">
@@ -519,7 +526,7 @@ export const Dashboard = () => {
         </div>
       </section>
 
-      {/* ✅ Grid Principal - Desktop com 2 colunas para mais informações */}
+      {/* ✅ Grid Principal */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         {/* ✅ Agendamentos de Hoje */}
         <section className="lg:col-span-2">
@@ -528,11 +535,15 @@ export const Dashboard = () => {
               Hoje
             </h2>
             <span className="text-text-muted text-xs">
-              {activeTodayAppointments.length} agendamento(s)
+              {Array.isArray(activeTodayAppointments)
+                ? activeTodayAppointments.length
+                : 0}{" "}
+              agendamento(s)
             </span>
           </div>
 
-          {activeTodayAppointments.length === 0 ? (
+          {!Array.isArray(activeTodayAppointments) ||
+          activeTodayAppointments.length === 0 ? (
             <div className="bg-primary-light rounded-xl text-center py-10 md:py-12 border border-border/50">
               <div className="text-4xl md:text-5xl mb-3">📭</div>
               <p className="text-text text-sm md:text-base font-semibold">
@@ -635,40 +646,41 @@ export const Dashboard = () => {
                           {status.label}
                         </span>
                         <div className="flex gap-1 md:gap-1.5 ml-auto">
-                          {actions.map((action) => {
-                            if (action.isConfirm) {
+                          {Array.isArray(actions) &&
+                            actions.map((action) => {
+                              if (action.isConfirm) {
+                                return (
+                                  <ConfirmPopup
+                                    key={action.key}
+                                    trigger={
+                                      <button
+                                        className={`rounded-lg transition ${action.className} ${action.size} flex items-center justify-center`}
+                                        title={action.label}
+                                      >
+                                        {action.icon}
+                                      </button>
+                                    }
+                                    onConfirm={action.onConfirm!}
+                                    title={action.confirmTitle || "Confirmar"}
+                                    message={action.confirmMessage || ""}
+                                    confirmText="Confirmar"
+                                    cancelText="Cancelar"
+                                    variant="danger"
+                                    size="sm"
+                                  />
+                                );
+                              }
                               return (
-                                <ConfirmPopup
+                                <button
                                   key={action.key}
-                                  trigger={
-                                    <button
-                                      className={`rounded-lg transition ${action.className} ${action.size} flex items-center justify-center`}
-                                      title={action.label}
-                                    >
-                                      {action.icon}
-                                    </button>
-                                  }
-                                  onConfirm={action.onConfirm!}
-                                  title={action.confirmTitle || "Confirmar"}
-                                  message={action.confirmMessage || ""}
-                                  confirmText="Confirmar"
-                                  cancelText="Cancelar"
-                                  variant="danger"
-                                  size="sm"
-                                />
+                                  onClick={action.onClick}
+                                  className={`rounded-lg transition ${action.className} ${action.size} flex items-center justify-center`}
+                                  title={action.label}
+                                >
+                                  {action.icon}
+                                </button>
                               );
-                            }
-                            return (
-                              <button
-                                key={action.key}
-                                onClick={action.onClick}
-                                className={`rounded-lg transition ${action.className} ${action.size} flex items-center justify-center`}
-                                title={action.label}
-                              >
-                                {action.icon}
-                              </button>
-                            );
-                          })}
+                            })}
                         </div>
                       </div>
                     </div>
@@ -679,14 +691,15 @@ export const Dashboard = () => {
           )}
         </section>
 
-        {/* ✅ Sidebar - Desktop com mais informações */}
+        {/* ✅ Sidebar */}
         <aside className="space-y-4 md:space-y-6">
           {/* ✅ Próximos Agendamentos */}
           <section>
             <h2 className="font-serif text-base md:text-lg font-bold text-text mb-3">
               Próximos
             </h2>
-            {activeUpcomingAppointments.length === 0 ? (
+            {!Array.isArray(activeUpcomingAppointments) ||
+            activeUpcomingAppointments.length === 0 ? (
               <div className="bg-primary-light rounded-xl text-center py-8 border border-border/50">
                 <div className="text-3xl md:text-4xl mb-2">📅</div>
                 <p className="text-text-muted text-xs md:text-sm">
@@ -742,40 +755,41 @@ export const Dashboard = () => {
                             {temporalStatus.label}
                           </span>
                           <div className="flex gap-1">
-                            {actions.slice(0, 2).map((action) => {
-                              if (action.isConfirm) {
+                            {Array.isArray(actions) &&
+                              actions.slice(0, 2).map((action) => {
+                                if (action.isConfirm) {
+                                  return (
+                                    <ConfirmPopup
+                                      key={action.key}
+                                      trigger={
+                                        <button
+                                          className={`rounded-lg transition ${action.className} ${action.size} flex items-center justify-center`}
+                                          title={action.label}
+                                        >
+                                          {action.icon}
+                                        </button>
+                                      }
+                                      onConfirm={action.onConfirm!}
+                                      title={action.confirmTitle || "Confirmar"}
+                                      message={action.confirmMessage || ""}
+                                      confirmText="Confirmar"
+                                      cancelText="Cancelar"
+                                      variant="danger"
+                                      size="sm"
+                                    />
+                                  );
+                                }
                                 return (
-                                  <ConfirmPopup
+                                  <button
                                     key={action.key}
-                                    trigger={
-                                      <button
-                                        className={`rounded-lg transition ${action.className} ${action.size} flex items-center justify-center`}
-                                        title={action.label}
-                                      >
-                                        {action.icon}
-                                      </button>
-                                    }
-                                    onConfirm={action.onConfirm!}
-                                    title={action.confirmTitle || "Confirmar"}
-                                    message={action.confirmMessage || ""}
-                                    confirmText="Confirmar"
-                                    cancelText="Cancelar"
-                                    variant="danger"
-                                    size="sm"
-                                  />
+                                    onClick={action.onClick}
+                                    className={`rounded-lg transition ${action.className} ${action.size} flex items-center justify-center`}
+                                    title={action.label}
+                                  >
+                                    {action.icon}
+                                  </button>
                                 );
-                              }
-                              return (
-                                <button
-                                  key={action.key}
-                                  onClick={action.onClick}
-                                  className={`rounded-lg transition ${action.className} ${action.size} flex items-center justify-center`}
-                                  title={action.label}
-                                >
-                                  {action.icon}
-                                </button>
-                              );
-                            })}
+                              })}
                           </div>
                         </div>
                       </div>
@@ -786,7 +800,7 @@ export const Dashboard = () => {
             )}
           </section>
 
-          {/* ✅ Ações Rápidas - Desktop com mais opções */}
+          {/* ✅ Ações Rápidas */}
           <section>
             <h2 className="font-serif text-base md:text-lg font-bold text-text mb-3">
               Ações Rápidas
@@ -832,7 +846,7 @@ export const Dashboard = () => {
             </nav>
           </section>
 
-          {/* ✅ Resumo Rápido - Apenas Desktop */}
+          {/* ✅ Resumo Rápido */}
           {isDesktop && stats && (
             <section className="bg-gradient-to-br from-accent/5 to-transparent rounded-xl p-4 border border-accent/10">
               <h3 className="font-serif text-sm font-bold text-text mb-2">
