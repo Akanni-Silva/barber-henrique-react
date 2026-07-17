@@ -76,27 +76,33 @@ export const Products = () => {
             limit,
           }),
         );
-        setProducts(data?.products || []);
+
+        // ✅ Garantir que products seja sempre um array
+        const productsData = data?.products || [];
+        setProducts(Array.isArray(productsData) ? productsData : []);
         setTotal(data?.total || 0);
       } catch (error) {
         console.error("Erro ao carregar produtos:", error);
         toast.error("Erro ao carregar produtos");
+        setProducts([]);
+        setTotal(0);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchProducts();
-  }, [page]);
+  }, [page, handleRequest, endpoints.products, limit]);
 
-  // ✅ Filtrar produtos por busca
+  // ✅ Filtrar produtos por busca - com verificação de array
+  const safeProducts = Array.isArray(products) ? products : [];
   const filteredProducts = searchTerm.trim()
-    ? products.filter(
+    ? safeProducts.filter(
         (product) =>
           product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           product.category?.toLowerCase().includes(searchTerm.toLowerCase()),
       )
-    : products;
+    : safeProducts;
 
   // ✅ Criar produto - abre o modal via contexto
   const handleOpenCreate = () => {
@@ -165,10 +171,12 @@ export const Products = () => {
       const data = await handleRequest(
         endpoints.products.findAll({ page, limit }),
       );
-      setProducts(data?.products || []);
+      const productsData = data?.products || [];
+      setProducts(Array.isArray(productsData) ? productsData : []);
       setTotal(data?.total || 0);
     } catch (error) {
       console.error("Erro ao salvar:", error);
+      toast.error("Erro ao salvar serviço");
     } finally {
       setIsSubmitting(false);
     }
@@ -179,7 +187,7 @@ export const Products = () => {
     try {
       await handleRequest(endpoints.products.deactivate(id));
       toast.info(`Serviço "${name}" desativado`);
-      const updated = products.map((p) =>
+      const updated = safeProducts.map((p) =>
         p.id === id ? { ...p, is_active: false } : p,
       );
       setProducts(updated);
@@ -194,7 +202,7 @@ export const Products = () => {
     try {
       await handleRequest(endpoints.products.activate(id));
       toast.success(`Serviço "${name}" ativado`);
-      const updated = products.map((p) =>
+      const updated = safeProducts.map((p) =>
         p.id === id ? { ...p, is_active: true } : p,
       );
       setProducts(updated);
@@ -208,7 +216,7 @@ export const Products = () => {
     try {
       await handleRequest(endpoints.products.delete(id));
       toast.success(`Serviço "${name}" removido!`);
-      const updated = products.filter((p) => p.id !== id);
+      const updated = safeProducts.filter((p) => p.id !== id);
       setProducts(updated);
       setTotal(updated.length);
     } catch (error) {

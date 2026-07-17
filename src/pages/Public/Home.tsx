@@ -139,7 +139,7 @@ export const Home = () => {
               )}
             </div>
             <h1 className="font-serif text-2xl md:text-3xl font-bold text-text">
-              {barberInfo?.name || "Henrique Cortes"}
+              {barberInfo?.name || "Barbearia"}
             </h1>
             <p className="text-text-muted text-sm md:text-base mt-1">
               Barbearia Premium • Estilo e Elegância

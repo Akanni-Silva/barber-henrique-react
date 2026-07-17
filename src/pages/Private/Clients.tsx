@@ -70,7 +70,10 @@ export const Clients = () => {
             limit,
           }),
         );
-        setClients(data?.clients || []);
+
+        // ✅ Garantir que clients seja sempre um array
+        const clientsData = data?.clients || [];
+        setClients(Array.isArray(clientsData) ? clientsData : []);
         setTotal(data?.total || 0);
 
         const statsData = await handleRequest(endpoints.clients.getStats());
@@ -78,20 +81,23 @@ export const Clients = () => {
       } catch (error) {
         console.error("Erro ao carregar clientes:", error);
         toast.error("Erro ao carregar clientes");
+        setClients([]);
+        setTotal(0);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchClients();
-  }, [page]);
+  }, [page, handleRequest, endpoints.clients, limit]);
 
   const handleSearch = async () => {
     if (!searchTerm.trim()) {
       const data = await handleRequest(
         endpoints.clients.findAll({ page, limit }),
       );
-      setClients(data?.clients || []);
+      const clientsData = data?.clients || [];
+      setClients(Array.isArray(clientsData) ? clientsData : []);
       setTotal(data?.total || 0);
       return;
     }
@@ -101,11 +107,14 @@ export const Clients = () => {
       const data = await handleRequest(
         endpoints.clients.searchByName(searchTerm, limit),
       );
-      setClients(data || []);
-      setTotal(data?.length || 0);
+      // ✅ Garantir que o resultado da busca seja um array
+      setClients(Array.isArray(data) ? data : []);
+      setTotal(Array.isArray(data) ? data.length : 0);
     } catch (error) {
       console.error("Erro ao buscar clientes:", error);
       toast.error("Erro ao buscar clientes");
+      setClients([]);
+      setTotal(0);
     } finally {
       setIsLoading(false);
     }
@@ -117,7 +126,8 @@ export const Clients = () => {
       const data = await handleRequest(
         endpoints.clients.findAll({ page, limit }),
       );
-      setClients(data?.clients || []);
+      const clientsData = data?.clients || [];
+      setClients(Array.isArray(clientsData) ? clientsData : []);
       setTotal(data?.total || 0);
     };
     fetchClients();
@@ -127,12 +137,15 @@ export const Clients = () => {
     try {
       await handleRequest(endpoints.clients.deactivate(id));
       toast.info("Cliente desativado!");
-      const updated = clients.map((client) =>
+      // ✅ Usar array seguro
+      const safeClients = Array.isArray(clients) ? clients : [];
+      const updated = safeClients.map((client) =>
         client.id === id ? { ...client, is_active: false } : client,
       );
       setClients(updated);
     } catch (error) {
       console.error("Erro ao desativar:", error);
+      toast.error("Erro ao desativar cliente");
     }
   };
 
@@ -140,14 +153,20 @@ export const Clients = () => {
     try {
       await handleRequest(endpoints.clients.activate(id));
       toast.success("Cliente ativado!");
-      const updated = clients.map((client) =>
+      // ✅ Usar array seguro
+      const safeClients = Array.isArray(clients) ? clients : [];
+      const updated = safeClients.map((client) =>
         client.id === id ? { ...client, is_active: true } : client,
       );
       setClients(updated);
     } catch (error) {
       console.error("Erro ao ativar:", error);
+      toast.error("Erro ao ativar cliente");
     }
   };
+
+  // ✅ Arrays seguros
+  const safeClients = Array.isArray(clients) ? clients : [];
 
   if (loading || isLoading) {
     return (
@@ -302,7 +321,7 @@ export const Clients = () => {
       </div>
 
       {/* ✅ Lista de Clientes - Cards Adaptativos */}
-      {clients.length === 0 ? (
+      {safeClients.length === 0 ? (
         <div className="text-center py-16 bg-primary-light rounded-2xl border border-border/50">
           <div className="text-5xl mb-4">👤</div>
           <h3 className="font-serif text-lg font-bold text-text mb-2">
@@ -325,7 +344,7 @@ export const Clients = () => {
         </div>
       ) : (
         <div className="space-y-2.5 md:space-y-3">
-          {clients.map((client) => (
+          {safeClients.map((client) => (
             <div
               key={client.id}
               className="bg-primary-light rounded-xl p-3 md:p-4 border border-border/50 hover:border-accent/20 transition-all"

@@ -198,16 +198,27 @@ export const Schedule = () => {
     const fetchServices = async () => {
       try {
         const data = await handleRequest(endpoints.products.findActive());
-        setServices(data || []);
-        if (data && data.length > 0) {
-          setSelectedService(data[0].id);
+        // ✅ Garantir que services seja sempre um array
+        let servicesData: Product[] = [];
+        if (Array.isArray(data)) {
+          servicesData = data;
+        } else if (data?.data && Array.isArray(data.data)) {
+          servicesData = data.data;
+        } else {
+          servicesData = [];
+        }
+
+        setServices(servicesData);
+        if (servicesData.length > 0) {
+          setSelectedService(servicesData[0].id);
         }
       } catch {
         toast.error("Erro ao carregar serviços disponíveis");
+        setServices([]);
       }
     };
     fetchServices();
-  }, []);
+  }, [handleRequest, endpoints.products]);
 
   useEffect(() => {
     const fetchSlots = async () => {
@@ -273,7 +284,7 @@ export const Schedule = () => {
     };
 
     fetchSlots();
-  }, [selectedDate, selectedService]);
+  }, [selectedDate, selectedService, handleRequest, endpoints.schedule]);
 
   // ✅ Quando chegar no step 3, carregar os dados do cliente (se existirem)
   useEffect(() => {
@@ -310,7 +321,12 @@ export const Schedule = () => {
     setSelectedTime("");
     setAvailableSlots([]);
     setSelectedDay(null);
-    setSelectedService(services.length > 0 ? services[0].id : null);
+    // ✅ Garantir que services é um array antes de acessar
+    if (Array.isArray(services) && services.length > 0) {
+      setSelectedService(services[0].id);
+    } else {
+      setSelectedService(null);
+    }
     setStep(1);
     setPhoneError(null);
     setCurrentMonth(new Date());
@@ -452,7 +468,7 @@ export const Schedule = () => {
         }
       }, 400);
     }
-  }, [selectedDate, selectedTime]);
+  }, [selectedDate, selectedTime, step]);
 
   useEffect(() => {
     document.title = "Agendar Horário | Barbearia";
@@ -466,7 +482,10 @@ export const Schedule = () => {
     );
   }
 
-  const selectedServiceObj = services.find((s) => s.id === selectedService);
+  // ✅ Garantir que services é um array antes de usar
+  const safeServices = Array.isArray(services) ? services : [];
+  const selectedServiceObj = safeServices.find((s) => s.id === selectedService);
+
   const monthNames = [
     "Janeiro",
     "Fevereiro",
@@ -597,42 +616,54 @@ export const Schedule = () => {
           {/* ✅ Step 1: Seleção de Serviço */}
           {step === 1 && (
             <div ref={serviceRef} className="space-y-4 animate-fadeIn">
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
-                {services.map((service) => (
-                  <button
-                    key={service.id}
-                    type="button"
-                    onClick={() => handleServiceSelect(service.id)}
-                    className={`p-4 md:p-5 rounded-2xl border-2 transition-all duration-200 text-center ${
-                      selectedService === service.id
-                        ? "border-accent bg-accent/10 ring-2 ring-accent/20 shadow-glow-sm"
-                        : "border-border/50 hover:border-border-light bg-primary-light"
-                    }`}
-                    aria-pressed={selectedService === service.id}
-                  >
-                    <div className="flex flex-col items-center">
-                      <div
-                        className={`${isDesktop ? "w-14 h-14" : "w-12 h-12"} bg-accent/10 rounded-xl flex items-center justify-center mb-2`}
-                      >
-                        <ServiceIcon
-                          category={service.category}
-                          size={isDesktop ? 24 : 22}
-                        />
+              {safeServices.length === 0 ? (
+                <div className="bg-primary-light rounded-2xl text-center py-12 border border-border/50">
+                  <div className="text-4xl mb-3">✂️</div>
+                  <p className="text-text-muted text-sm">
+                    Nenhum serviço disponível no momento
+                  </p>
+                  <p className="text-text-muted text-xs mt-1">
+                    Por favor, tente novamente mais tarde
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+                  {safeServices.map((service) => (
+                    <button
+                      key={service.id}
+                      type="button"
+                      onClick={() => handleServiceSelect(service.id)}
+                      className={`p-4 md:p-5 rounded-2xl border-2 transition-all duration-200 text-center ${
+                        selectedService === service.id
+                          ? "border-accent bg-accent/10 ring-2 ring-accent/20 shadow-glow-sm"
+                          : "border-border/50 hover:border-border-light bg-primary-light"
+                      }`}
+                      aria-pressed={selectedService === service.id}
+                    >
+                      <div className="flex flex-col items-center">
+                        <div
+                          className={`${isDesktop ? "w-14 h-14" : "w-12 h-12"} bg-accent/10 rounded-xl flex items-center justify-center mb-2`}
+                        >
+                          <ServiceIcon
+                            category={service.category}
+                            size={isDesktop ? 24 : 22}
+                          />
+                        </div>
+                        <h4 className="font-semibold text-text text-sm md:text-base leading-tight">
+                          {service.name}
+                        </h4>
+                        <p className="text-accent font-bold text-sm md:text-base mt-1">
+                          {formatPrice(service.price)}
+                        </p>
+                        <p className="text-text-muted text-[10px] md:text-xs flex items-center gap-0.5">
+                          <ClockIcon size={isDesktop ? 12 : 10} />
+                          {service.duration_minutes}min
+                        </p>
                       </div>
-                      <h4 className="font-semibold text-text text-sm md:text-base leading-tight">
-                        {service.name}
-                      </h4>
-                      <p className="text-accent font-bold text-sm md:text-base mt-1">
-                        {formatPrice(service.price)}
-                      </p>
-                      <p className="text-text-muted text-[10px] md:text-xs flex items-center gap-0.5">
-                        <ClockIcon size={isDesktop ? 12 : 10} />
-                        {service.duration_minutes}min
-                      </p>
-                    </div>
-                  </button>
-                ))}
-              </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

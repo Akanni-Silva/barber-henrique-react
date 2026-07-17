@@ -97,22 +97,28 @@ export const ScheduleManagement = () => {
           handleRequest(endpoints.schedule.findAllWorkSchedules()),
           handleRequest(endpoints.schedule.findAllBlockedDates()),
         ]);
-        setWorkSchedules(schedules || []);
-        setBlockedDates(blocked || []);
+
+        // ✅ Garantir que os dados sejam arrays
+        setWorkSchedules(Array.isArray(schedules) ? schedules : []);
+        setBlockedDates(Array.isArray(blocked) ? blocked : []);
       } catch (error) {
         console.error("Erro ao carregar dados:", error);
         toast.error("Erro ao carregar dados da agenda");
+        setWorkSchedules([]);
+        setBlockedDates([]);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchData();
-  }, []);
+  }, [handleRequest, endpoints.schedule]);
 
   const schedulesMap = useMemo(() => {
     const map = new Map<number, WorkSchedule>();
-    workSchedules.forEach((schedule) => {
+    // ✅ Garantir que workSchedules é um array
+    const safeSchedules = Array.isArray(workSchedules) ? workSchedules : [];
+    safeSchedules.forEach((schedule) => {
       map.set(schedule.day_of_week, schedule);
     });
     return map;
@@ -166,17 +172,22 @@ export const ScheduleManagement = () => {
       const schedules = await handleRequest(
         endpoints.schedule.findAllWorkSchedules(),
       );
-      setWorkSchedules(schedules || []);
+      setWorkSchedules(Array.isArray(schedules) ? schedules : []);
     } catch (error) {
       console.error("Erro ao salvar horário:", error);
+      toast.error("Erro ao salvar horário");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleOpenBulkModal = () => {
+    // ✅ Garantir que workSchedules é um array
+    const safeSchedules = Array.isArray(workSchedules) ? workSchedules : [];
     const workingDays = DAYS_OF_WEEK.map((day) => day.value).filter(
-      (dayValue) => schedulesMap.get(dayValue)?.is_working !== false,
+      (dayValue) =>
+        safeSchedules.find((s) => s.day_of_week === dayValue)?.is_working !==
+        false,
     );
 
     setBulkForm({
@@ -252,7 +263,7 @@ export const ScheduleManagement = () => {
       const schedules = await handleRequest(
         endpoints.schedule.findAllWorkSchedules(),
       );
-      setWorkSchedules(schedules || []);
+      setWorkSchedules(Array.isArray(schedules) ? schedules : []);
     } catch (error) {
       console.error("Erro ao salvar em massa:", error);
       toast.error("Erro ao salvar horários em massa");
@@ -294,9 +305,10 @@ export const ScheduleManagement = () => {
       const blocked = await handleRequest(
         endpoints.schedule.findAllBlockedDates(),
       );
-      setBlockedDates(blocked || []);
+      setBlockedDates(Array.isArray(blocked) ? blocked : []);
     } catch (error) {
       console.error("Erro ao bloquear data:", error);
+      toast.error("Erro ao bloquear data");
     } finally {
       setIsBlockSubmitting(false);
     }
@@ -307,10 +319,13 @@ export const ScheduleManagement = () => {
       await handleRequest(endpoints.schedule.unblockDate(id));
       toast.info("Data desbloqueada!");
 
-      const updated = blockedDates.filter((b) => b.id !== id);
+      // ✅ Garantir que blockedDates é um array antes de filtrar
+      const safeBlockedDates = Array.isArray(blockedDates) ? blockedDates : [];
+      const updated = safeBlockedDates.filter((b) => b.id !== id);
       setBlockedDates(updated);
     } catch (error) {
       console.error("Erro ao desbloquear:", error);
+      toast.error("Erro ao desbloquear data");
     }
   };
 
@@ -325,6 +340,10 @@ export const ScheduleManagement = () => {
       </div>
     );
   }
+
+  // ✅ Arrays seguros
+  const safeWorkSchedules = Array.isArray(workSchedules) ? workSchedules : [];
+  const safeBlockedDates = Array.isArray(blockedDates) ? blockedDates : [];
 
   return (
     <div className="pb-20 max-w-6xl mx-auto">
@@ -350,7 +369,9 @@ export const ScheduleManagement = () => {
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1.5 text-text-muted text-xs bg-primary-light/50 px-3 py-1.5 rounded-lg border border-border/50">
               <ListIcon size={14} className="text-accent" />
-              <span className="font-medium">{workSchedules.length} dias</span>
+              <span className="font-medium">
+                {safeWorkSchedules.length} dias
+              </span>
             </div>
             <Button
               variant="secondary"
@@ -474,11 +495,11 @@ export const ScheduleManagement = () => {
               Bloqueios
             </h2>
             <span className="text-text-muted text-xs md:text-sm bg-primary-light/50 px-3 py-1 rounded-lg border border-border/50">
-              {blockedDates.length} bloqueio(s)
+              {safeBlockedDates.length} bloqueio(s)
             </span>
           </div>
 
-          {blockedDates.length === 0 ? (
+          {safeBlockedDates.length === 0 ? (
             <div className="bg-primary-light rounded-xl text-center py-8 md:py-12 border border-border/50">
               <div className="text-4xl md:text-5xl mb-3">📅</div>
               <p className="text-text-muted text-sm font-medium">
@@ -490,7 +511,7 @@ export const ScheduleManagement = () => {
             </div>
           ) : (
             <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
-              {blockedDates.map((block) => (
+              {safeBlockedDates.map((block) => (
                 <div
                   key={block.id}
                   className="bg-primary-light rounded-xl p-3 md:p-4 border border-red-500/20 hover:border-red-500/30 transition-all"

@@ -92,7 +92,8 @@ export const AppointmentsManagement = () => {
   }, [page, limit, filters.status, filters.startDate, filters.endDate]);
 
   const sortAppointmentsByDate = useCallback((list: Appointment[]) => {
-    return [...list].sort((a, b) => {
+    const safeList = Array.isArray(list) ? list : [];
+    return [...safeList].sort((a, b) => {
       const dateA = new Date(a.appointment_date);
       const dateB = new Date(b.appointment_date);
       if (dateA.getTime() !== dateB.getTime()) {
@@ -102,16 +103,18 @@ export const AppointmentsManagement = () => {
     });
   }, []);
 
+  // ✅ Filtrar appointments com segurança
+  const safeAppointments = Array.isArray(appointments) ? appointments : [];
   const filteredAppointments = useMemo(() => {
-    if (!searchTerm.trim()) return appointments;
+    if (!searchTerm.trim()) return safeAppointments;
     const term = searchTerm.toLowerCase().trim();
-    return appointments.filter(
+    return safeAppointments.filter(
       (app) =>
         app.client?.name?.toLowerCase().includes(term) ||
         app.client?.phone?.includes(term) ||
         app.service?.name?.toLowerCase().includes(term),
     );
-  }, [appointments, searchTerm]);
+  }, [safeAppointments, searchTerm]);
 
   const fetchAppointments = useCallback(async () => {
     if (fetchInProgress.current) return;
@@ -121,13 +124,18 @@ export const AppointmentsManagement = () => {
       const data = await handleRequest(
         endpoints.appointments.findAll(requestParams),
       );
+
+      // ✅ Garantir que appointments seja sempre um array
+      const appointmentsData = data?.appointments || [];
       const sortedAppointments = sortAppointmentsByDate(
-        data?.appointments || [],
+        Array.isArray(appointmentsData) ? appointmentsData : [],
       );
       setAppointments(sortedAppointments);
       setTotal(data?.total || 0);
     } catch (error) {
       console.error("Erro ao carregar agendamentos:", error);
+      setAppointments([]);
+      setTotal(0);
     } finally {
       setIsLoading(false);
       fetchInProgress.current = false;
@@ -142,11 +150,27 @@ export const AppointmentsManagement = () => {
   const fetchServices = useCallback(async () => {
     setIsServicesLoading(true);
     try {
+      // eslint-disable-next-line prefer-const
       let data = await handleRequest(endpoints.products.findActive());
-      if (!data || (Array.isArray(data) && data.length === 0)) {
-        data = await handleRequest(endpoints.products.findAll());
+
+      // ✅ Garantir que services seja sempre um array
+      let servicesData: Product[] = [];
+      if (Array.isArray(data)) {
+        servicesData = data;
+      } else if (data?.data && Array.isArray(data.data)) {
+        servicesData = data.data;
+      } else {
+        // Fallback para buscar todos
+        const fallbackData = await handleRequest(endpoints.products.findAll());
+        if (Array.isArray(fallbackData)) {
+          servicesData = fallbackData;
+        } else if (fallbackData?.data && Array.isArray(fallbackData.data)) {
+          servicesData = fallbackData.data;
+        } else {
+          servicesData = [];
+        }
       }
-      setServices(data || []);
+      setServices(servicesData);
     } catch (error) {
       if (import.meta.env.DEV) {
         console.debug("Serviços não disponíveis para reagendamento:", error);
@@ -381,6 +405,9 @@ export const AppointmentsManagement = () => {
     return actions;
   };
 
+  // ✅ Array seguro para serviços
+  const safeServices = Array.isArray(services) ? services : [];
+
   if (loading || isLoading) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center">
@@ -532,7 +559,8 @@ export const AppointmentsManagement = () => {
       )}
 
       {/* ✅ Lista de Agendamentos - Cards Adaptativos */}
-      {filteredAppointments.length === 0 ? (
+      {!Array.isArray(filteredAppointments) ||
+      filteredAppointments.length === 0 ? (
         <div className="text-center py-16 bg-primary-light rounded-2xl border border-border/50">
           <div className="text-5xl mb-4">📭</div>
           <h3 className="font-serif text-lg font-bold text-text mb-2">
@@ -659,44 +687,45 @@ export const AppointmentsManagement = () => {
                       <span className="hidden xs:inline">Detalhes</span>
                     </button>
 
-                    {actions.map((action) => {
-                      if (action.isConfirm) {
+                    {Array.isArray(actions) &&
+                      actions.map((action) => {
+                        if (action.isConfirm) {
+                          return (
+                            <ConfirmPopup
+                              key={action.key}
+                              trigger={
+                                <button
+                                  className={`p-1.5 md:p-2 rounded-lg transition ${action.className} flex items-center gap-1 text-xs`}
+                                >
+                                  {action.icon}
+                                  <span className="hidden xs:inline">
+                                    {action.label}
+                                  </span>
+                                </button>
+                              }
+                              onConfirm={action.onConfirm!}
+                              title={action.confirmTitle || "Confirmar"}
+                              message={action.confirmMessage || ""}
+                              confirmText="Confirmar"
+                              cancelText="Cancelar"
+                              variant="danger"
+                              size="sm"
+                            />
+                          );
+                        }
                         return (
-                          <ConfirmPopup
+                          <button
                             key={action.key}
-                            trigger={
-                              <button
-                                className={`p-1.5 md:p-2 rounded-lg transition ${action.className} flex items-center gap-1 text-xs`}
-                              >
-                                {action.icon}
-                                <span className="hidden xs:inline">
-                                  {action.label}
-                                </span>
-                              </button>
-                            }
-                            onConfirm={action.onConfirm!}
-                            title={action.confirmTitle || "Confirmar"}
-                            message={action.confirmMessage || ""}
-                            confirmText="Confirmar"
-                            cancelText="Cancelar"
-                            variant="danger"
-                            size="sm"
-                          />
+                            onClick={action.onClick}
+                            className={`p-1.5 md:p-2 rounded-lg transition ${action.className} flex items-center gap-1 text-xs`}
+                          >
+                            {action.icon}
+                            <span className="hidden xs:inline">
+                              {action.label}
+                            </span>
+                          </button>
                         );
-                      }
-                      return (
-                        <button
-                          key={action.key}
-                          onClick={action.onClick}
-                          className={`p-1.5 md:p-2 rounded-lg transition ${action.className} flex items-center gap-1 text-xs`}
-                        >
-                          {action.icon}
-                          <span className="hidden xs:inline">
-                            {action.label}
-                          </span>
-                        </button>
-                      );
-                    })}
+                      })}
                   </div>
                 </div>
               </div>
@@ -851,43 +880,48 @@ export const AppointmentsManagement = () => {
 
               {/* Ações */}
               <div className="flex flex-wrap gap-2 pt-2">
-                {getAvailableActions(selectedAppointment).map((action) => {
-                  if (action.isConfirm) {
+                {Array.isArray(getAvailableActions(selectedAppointment)) &&
+                  getAvailableActions(selectedAppointment).map((action) => {
+                    if (action.isConfirm) {
+                      return (
+                        <ConfirmPopup
+                          key={action.key}
+                          trigger={
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              icon={action.icon}
+                            >
+                              {action.label}
+                            </Button>
+                          }
+                          onConfirm={action.onConfirm!}
+                          title={action.confirmTitle || "Confirmar"}
+                          message={action.confirmMessage || ""}
+                          confirmText="Confirmar"
+                          cancelText="Voltar"
+                          variant="danger"
+                          size="sm"
+                        />
+                      );
+                    }
                     return (
-                      <ConfirmPopup
+                      <Button
                         key={action.key}
-                        trigger={
-                          <Button variant="danger" size="sm" icon={action.icon}>
-                            {action.label}
-                          </Button>
-                        }
-                        onConfirm={action.onConfirm!}
-                        title={action.confirmTitle || "Confirmar"}
-                        message={action.confirmMessage || ""}
-                        confirmText="Confirmar"
-                        cancelText="Voltar"
-                        variant="danger"
+                        variant="primary"
                         size="sm"
-                      />
+                        icon={action.icon}
+                        onClick={() => {
+                          action.onClick();
+                          if (action.key !== "reschedule") {
+                            setShowDetails(false);
+                          }
+                        }}
+                      >
+                        {action.label}
+                      </Button>
                     );
-                  }
-                  return (
-                    <Button
-                      key={action.key}
-                      variant="primary"
-                      size="sm"
-                      icon={action.icon}
-                      onClick={() => {
-                        action.onClick();
-                        if (action.key !== "reschedule") {
-                          setShowDetails(false);
-                        }
-                      }}
-                    >
-                      {action.label}
-                    </Button>
-                  );
-                })}
+                  })}
                 <Button
                   variant="ghost"
                   size="sm"
@@ -911,7 +945,7 @@ export const AppointmentsManagement = () => {
         }}
         onConfirm={handleReschedule}
         appointment={appointmentToReschedule}
-        services={services}
+        services={safeServices}
         isLoading={isServicesLoading}
       />
     </div>

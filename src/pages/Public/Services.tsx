@@ -52,9 +52,20 @@ export const Services = () => {
     const fetchServices = async () => {
       try {
         const data = await handleRequest(endpoints.products.findActive());
-        const servicesData = (data || []) as Product[];
+
+        // ✅ Garantir que services seja sempre um array
+        let servicesData: Product[] = [];
+        if (Array.isArray(data)) {
+          servicesData = data;
+        } else if (data?.data && Array.isArray(data.data)) {
+          servicesData = data.data;
+        } else {
+          servicesData = [];
+        }
+
         setServices(servicesData);
 
+        // ✅ Extrair categorias únicas com segurança
         const uniqueCategories = Array.from(
           new Set(servicesData.map((s: Product) => s.category || "outros")),
         ) as string[];
@@ -62,13 +73,18 @@ export const Services = () => {
       } catch (error) {
         console.error("Erro ao carregar serviços:", error);
         toast.error("Erro ao carregar serviços");
+        setServices([]);
+        setCategories([]);
       }
     };
     fetchServices();
-  }, []);
+  }, [handleRequest, endpoints.products]);
+
+  // ✅ Garantir que services é um array antes de filtrar
+  const safeServices = Array.isArray(services) ? services : [];
 
   const filteredServices = useMemo(() => {
-    let filtered = services;
+    let filtered = safeServices;
 
     if (searchTerm.trim()) {
       filtered = filtered.filter(
@@ -85,7 +101,7 @@ export const Services = () => {
     }
 
     return filtered;
-  }, [searchTerm, selectedCategory, services]);
+  }, [searchTerm, selectedCategory, safeServices]);
 
   const clearFilters = () => {
     setSearchTerm("");
@@ -101,6 +117,9 @@ export const Services = () => {
     );
   }
 
+  // ✅ Categorias seguras
+  const safeCategories = Array.isArray(categories) ? categories : [];
+
   return (
     <div className="pb-20">
       {/* ✅ Cabeçalho com estatísticas */}
@@ -110,14 +129,16 @@ export const Services = () => {
             Serviços
           </h1>
           <p className="text-text-muted text-xs md:text-sm">
-            {filteredServices.length} de {services.length} serviços disponíveis
+            {Array.isArray(filteredServices) ? filteredServices.length : 0} de{" "}
+            {Array.isArray(safeServices) ? safeServices.length : 0} serviços
+            disponíveis
           </p>
         </div>
         <div className="flex items-center gap-3 mt-3 md:mt-0">
           {isDesktop && (
             <div className="flex items-center gap-1.5 text-text-muted text-xs bg-primary-light/50 px-3 py-1.5 rounded-lg border border-border/50">
               <ListIcon size={14} />
-              <span>{categories.length} categorias</span>
+              <span>{safeCategories.length} categorias</span>
             </div>
           )}
           <Link
@@ -148,7 +169,7 @@ export const Services = () => {
         </div>
 
         {/* Filtros Desktop - Sempre visíveis */}
-        {isDesktop && categories.length > 0 && (
+        {isDesktop && safeCategories.length > 0 && (
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
             <button
               onClick={() => setSelectedCategory("all")}
@@ -160,7 +181,7 @@ export const Services = () => {
             >
               Todos
             </button>
-            {categories.map((cat) => (
+            {safeCategories.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
@@ -221,7 +242,7 @@ export const Services = () => {
                 >
                   Todos
                 </button>
-                {categories.map((cat) => (
+                {safeCategories.map((cat) => (
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
@@ -248,7 +269,7 @@ export const Services = () => {
       )}
 
       {/* ✅ Resultados - Grid Adaptativo */}
-      {filteredServices.length === 0 ? (
+      {!Array.isArray(filteredServices) || filteredServices.length === 0 ? (
         <div className="text-center py-16 bg-primary-light rounded-2xl border border-border/50">
           <div className="text-5xl mb-4">🤔</div>
           <h3 className="font-serif text-lg font-bold text-text mb-2">
@@ -327,7 +348,7 @@ export const Services = () => {
       )}
 
       {/* ✅ Call to Action */}
-      {filteredServices.length > 0 && (
+      {Array.isArray(filteredServices) && filteredServices.length > 0 && (
         <div className="mt-6 md:mt-8 bg-gradient-to-r from-accent/10 via-accent/5 to-transparent rounded-2xl p-4 md:p-6 border border-accent/10">
           <div className="flex flex-col md:flex-row items-center justify-between gap-3">
             <div className="text-center md:text-left">
