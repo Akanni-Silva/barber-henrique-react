@@ -1,4 +1,3 @@
-// src/pages/Public/Home.tsx
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -48,16 +47,26 @@ export const Home = () => {
         const servicesData = await handleRequest(
           endpoints.products.findActive(),
         );
-        setServices(servicesData || []);
+        // ✅ Garantir que servicesData seja sempre um array
+        if (Array.isArray(servicesData)) {
+          setServices(servicesData);
+        } else if (servicesData?.data && Array.isArray(servicesData.data)) {
+          setServices(servicesData.data);
+        } else {
+          setServices([]);
+        }
       } catch (error) {
         console.error("Erro ao carregar dados:", error);
+        setServices([]);
       }
     };
 
     fetchData();
-  }, []);
+  }, [handleRequest, endpoints.products]);
 
-  const featuredServices = services.slice(0, isDesktop ? 6 : 4);
+  // ✅ Garantir que services seja um array antes de fatiar
+  const safeServices = Array.isArray(services) ? services : [];
+  const featuredServices = safeServices.slice(0, isDesktop ? 6 : 4);
 
   useAuthRedirect({
     redirectTo: "/dashboard",
@@ -231,7 +240,8 @@ export const Home = () => {
           <div className="flex justify-center py-8">
             <Spinner color="#C9A84C" size={14} text="Carregando serviços..." />
           </div>
-        ) : featuredServices.length === 0 ? (
+        ) : !Array.isArray(featuredServices) ||
+          featuredServices.length === 0 ? (
           <div className="text-center py-8 text-text-muted bg-primary-light rounded-2xl border border-border/50">
             <div className="text-3xl mb-2">🤔</div>
             <p className="text-sm font-medium">Nenhum serviço disponível</p>
